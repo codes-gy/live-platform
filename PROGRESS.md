@@ -56,7 +56,7 @@
   - `UserDetailsServiceAutoConfiguration` 제외(생성 비밀번호 로그 제거)
   - 테스트 37개 통과: `BroadcastControllerTest` 17(비로그인 · 소유자 · 다른 사용자별 등록/수정/삭제, 404, 검증, 필터 · 정렬 · 페이지 크기) + `BroadcastTest` 6(상태 전이) + 인증 14. 테스트 도우미 `AuthSupport.signupNewUser`
 
-- [x] (11-05) #3 LiveKit 연동: 브랜치 `feature/live/#3-livekit`, PR(머지 대기)
+- [x] (11-05) #3 LiveKit 연동: 브랜치 `feature/live/#3-livekit`, PR #18(머지 대기)
   - API(모두 `POST /api/broadcasts/{id}/…`): `start`(소유자, READY→LIVE + 송출 토큰), `publisher-token`(소유자, LIVE, 재접속용), `end`(소유자, LIVE→ENDED + 방 닫기, ENDED면 그대로 200), `viewer-token`(공개, LIVE만, 로그인 시 닉네임). 응답 `LiveAccessResponse{serverUrl, roomName, identity, token, broadcast}`
   - 웹훅 `POST /api/livekit/webhook`(공개, LiveKit 서명 JWT + 본문 SHA-256 검증, 실패 401 `INVALID_WEBHOOK`)
     - `room_finished` → LIVE면 ENDED(아무도 안 들어옴 · 모두 나감)
