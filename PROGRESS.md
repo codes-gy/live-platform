@@ -79,7 +79,7 @@
   - `.env.example`: `NEXT_PUBLIC_API_BASE_URL` 삭제 → `BACKEND_URL`
   - 로컬 메모: 3000 포트는 사용자의 다른 Node 프로세스(포트폴리오 dev 서버로 추정)가 쓰고 있어 3100 사용
 
-- [x] (11-05) #5 방송 목록 · 상세 · 시청: 브랜치 `feature/broadcast/#5-watch`, PR(머지 대기)
+- [x] (11-05) #5 방송 목록 · 상세 · 시청: 브랜치 `feature/broadcast/#5-watch`, PR #20(머지 대기)
   - `lib/broadcast.ts`: 타입(Broadcast · Page · LiveAccess), 상태 라벨, 시간 포맷(`formatAgo` · `formatDuration` · `describeTime`)
   - `/`: `BroadcastList`(탭 방송 중 · 전체 · 종료, size 12 더 보기(ID로 중복 제거), 방송 중 탭 20초 폴링), `BroadcastCard`(썸네일 대신 상태 화면 + 제목), `StatusBadge`
   - `/broadcasts/[id]`: `BroadcastDetail`(없음 · 오류 · 방송 전 10초 폴링 · 종료 화면), `LivePlayer`(viewer-token → `LiveKitRoom` audio/video=false, adaptiveStream, `useTracks([ScreenShare, Camera], onlySubscribed)` 화면 우선, `RoomAudioRenderer`(마이크 + 화면 소리, muted 토글), `StartAudio`("눌러서 소리 켜기"), 전체 화면, 연결 상태 오버레이, `DisconnectReason.ROOM_DELETED` → 종료 화면, 그 외 끊김 → 다시 연결, 키 없으면(503) 재시도 없이 안내)
