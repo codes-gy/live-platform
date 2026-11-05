@@ -23,6 +23,14 @@
 - 도네이션: 결제 승인 API는 서버에서 호출, 금액·대상 검증. `paymentKey`/`orderId` 유니크 제약으로 중복 적립 방지(멱등).
 - 테스트 계정: README에 공개 + "테스트 계정으로 로그인" 버튼 제공 예정.
 
+## 작업 방식 (Kidly와 동일, 2026-11-05 확정)
+- GitHub: https://github.com/codes-gy/live-platform (public, 기본 브랜치 `develop`, 제출 시 `main`)
+- 이슈 등록 → 브랜치 `feature|chore|fix/<도메인>/#번호-설명` → 커밋 `feat: … (#번호)` → PR(`Closes #번호`, 템플릿 사용) → CI 통과 → develop 머지
+- 이슈 #1~#14 등록 완료(라벨: feat · chore · docs · 필수 · 선택). 템플릿: `.github/ISSUE_TEMPLATE/issue.md`, `.github/pull_request_template.md`
+- **PR 머지는 사용자가 직접 한다**(Claude의 `gh pr merge`는 권한 확인에서 막힘)
+- 진행 현황 대시보드: https://claude.ai/artifact/SXrrCbWLq1AHjQPVZfkhTM
+  - 갱신 방법: 이슈 상태 JSON(`[{issue,title,req,area,status(완료|진행 중|대기),pr,updated}]`)을 Artifact 에셋으로 올리고 `datasets/issues`의 `source.url` · `updated`를 바꾼다
+
 ## 진행 현황
 ### 완료
 - [x] (11-05) 프로젝트 뼈대 생성
@@ -30,19 +38,27 @@
   - frontend: create-next-app(Next 16.4.5) + LiveKit SDK, `npm run build` 통과
   - 루트: `docker-compose.yml`(로컬 PostgreSQL), `.env.example`, `.gitignore`, `CLAUDE.md`, `README.md` 초안, git init(main)
 
+- [x] (11-05) #10 CI: `.github/workflows/ci.yml`(백엔드 `./gradlew test` + 프론트 lint · build). PR #15 CI 통과(각 약 1분 10초), **머지 대기**
+- [x] (11-05) #1 인증 백엔드: PR #16, **머지 대기**
+  - `users`(V1), BCrypt, JWT를 HttpOnly · SameSite=Lax 쿠키 `access_token`으로 발급(+ Bearer 헤더 허용), CSRF 비활성(쿠키 SameSite로 방어)
+  - API: `POST /api/auth/signup|login|test-login|logout`, `GET /api/auth/me`
+  - 테스트 계정 `streamer@test.com`(STREAMER) · `viewer@test.com`(VIEWER), 비밀번호 `test1234!`, 시작 시 없으면 생성(`TEST_ACCOUNTS_ENABLED`)
+  - 오류 형식 `{code, message}` 통일(`ErrorCode` · `GlobalExceptionHandler` · `SecurityErrorHandlers`)
+  - 공개 경로: 인증 POST 4개, GET `/api/broadcasts/**`, `/actuator/health`, Swagger. 나머지는 인증 필요
+  - 테스트 14개 통과(`AuthControllerTest` 13 + contextLoads). 공통 어노테이션 `@IntegrationTest`(Testcontainers + MockMvc)
+
 ## 현재 상태
-- 뼈대만 존재. 도메인/엔티티/마이그레이션 없음. Security는 기본 설정(전부 인증 필요) 상태.
-- 아직 커밋 전, GitHub 원격 저장소 미생성.
+- 백엔드 인증 완료(PR #16), CI 준비(PR #15). 둘 다 사용자 머지 대기.
+- PR #16은 CI 파일이 develop에 없을 때 만들어 CI 결과가 없다 → #15 머지 후 #1 브랜치에 develop을 합치고 push하면 CI가 돈다.
 
 ## 다음 작업 (순서대로)
-1. **인증**: `users` 마이그레이션, 회원가입/로그인/로그아웃(JWT, HttpOnly 쿠키 또는 Bearer 결정), SecurityConfig(permitAll 경로·CORS), `/api/auth/me`, 테스트 계정 시드 + 인가 테스트
-2. **방송 관리**: `broadcasts` 엔티티(제목·설명·상태·소유자·시작/종료 시각), CRUD API + 소유자 권한 검증 + 비로그인/소유자/타인 테스트
-3. **LiveKit 연동**: 송출 토큰(소유자)/시청 토큰(누구나) 발급, 방송 시작·종료 API(종료 시 deleteRoom), 웹훅 수신
-4. **프론트**: 로그인/회원가입, 방송 목록·상세·시청, 방송 등록·수정, PC 송출(화면+탭/시스템 소리+마이크), 모바일 송출(카메라+마이크)
-5. **배포**: EC2 + Docker Compose + Nginx + HTTPS, LiveKit Cloud 프로젝트·키 발급 → 실기기(PC→폰, 폰→PC) 확인
-6. 선택: 댓글 → 도네이션(토스 테스트) → 녹화/다시보기(Egress → S3)
-7. README 완성(서비스 URL, 테스트 계정, 실행 방법, 기능 확인 절차, 지원 환경, 오픈소스 출처)
+0. 사용자: PR #15 → #16 순서로 머지(#16은 develop 합친 뒤 CI 확인)
+1. **#2 방송 관리 API** (브랜치 `feature/broadcast/#2-…`): `broadcasts` 엔티티(제목·설명·상태·소유자·시작/종료 시각), CRUD API + 소유자 권한 검증 + 비로그인/소유자/타인 테스트
+2. **#3 LiveKit 연동**: 송출 토큰(소유자)/시청 토큰(누구나) 발급, 방송 시작·종료 API(종료 시 deleteRoom), 웹훅 수신
+3. **프론트(#4~#8)**: 로그인/회원가입, 방송 목록·상세·시청, 방송 등록·수정, PC 송출(화면+탭/시스템 소리+마이크), 모바일 송출(카메라+마이크)
+4. **배포(#9)**: EC2 + Docker Compose + Nginx + HTTPS, LiveKit Cloud 프로젝트·키 발급 → 실기기(PC→폰, 폰→PC) 확인
+5. 선택(#11~#13): 댓글 → 도네이션(토스 테스트) → 녹화/다시보기(Egress → S3)
+6. README 완성(#14)(서비스 URL, 테스트 계정, 실행 방법, 기능 확인 절차, 지원 환경, 오픈소스 출처)
 
 ## 사용자 확인 필요
-- GitHub 저장소 이름/공개 여부 생성 시점
 - 도메인 보유 여부 (HTTPS 인증서용) · AWS 계정/S3 버킷 · LiveKit Cloud 가입 · 토스페이먼츠 테스트 키
