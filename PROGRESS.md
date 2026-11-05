@@ -27,7 +27,7 @@
 - GitHub: https://github.com/codes-gy/live-platform (public, 기본 브랜치 `develop`, 제출 시 `main`)
 - 이슈 등록 → 브랜치 `feature|chore|fix/<도메인>/#번호-설명` → 커밋 `feat: … (#번호)` → PR(`Closes #번호`, 템플릿 사용) → CI 통과 → develop 머지
 - 이슈 #1~#14 등록 완료(라벨: feat · chore · docs · 필수 · 선택). 템플릿: `.github/ISSUE_TEMPLATE/issue.md`, `.github/pull_request_template.md`
-- **PR 머지는 사용자가 직접 한다**(Claude의 `gh pr merge`는 권한 확인에서 막힘)
+- PR 머지: CI 통과 확인 후 머지(`--merge`, 브랜치 삭제). 사용자가 "머지해줘"라고 요청했을 때 Claude가 `gh pr merge`로 진행한다(요청 없이 자동 머지는 권한 확인에서 막힘)
 - 진행 현황 대시보드: https://claude.ai/artifact/SXrrCbWLq1AHjQPVZfkhTM
   - 갱신 방법: 이슈 상태 JSON(`[{issue,title,req,area,status(완료|진행 중|대기),pr,updated}]`)을 Artifact 에셋으로 올리고 `datasets/issues`의 `source.url` · `updated`를 바꾼다
 
@@ -38,23 +38,33 @@
   - frontend: create-next-app(Next 16.4.5) + LiveKit SDK, `npm run build` 통과
   - 루트: `docker-compose.yml`(로컬 PostgreSQL), `.env.example`, `.gitignore`, `CLAUDE.md`, `README.md` 초안, git init(main)
 
-- [x] (11-05) #10 CI: `.github/workflows/ci.yml`(백엔드 `./gradlew test` + 프론트 lint · build). PR #15 CI 통과(각 약 1분 10초), **머지 대기**
-- [x] (11-05) #1 인증 백엔드: PR #16, **머지 대기**
+- [x] (11-05) #10 CI: `.github/workflows/ci.yml`(백엔드 `./gradlew test` + 프론트 lint · build). PR #15 develop 머지 완료
+- [x] (11-05) #1 인증 백엔드: PR #16 CI 통과 후 develop 머지 완료
   - `users`(V1), BCrypt, JWT를 HttpOnly · SameSite=Lax 쿠키 `access_token`으로 발급(+ Bearer 헤더 허용), CSRF 비활성(쿠키 SameSite로 방어)
   - API: `POST /api/auth/signup|login|test-login|logout`, `GET /api/auth/me`
   - 테스트 계정 `streamer@test.com`(STREAMER) · `viewer@test.com`(VIEWER), 비밀번호 `test1234!`, 시작 시 없으면 생성(`TEST_ACCOUNTS_ENABLED`)
   - 오류 형식 `{code, message}` 통일(`ErrorCode` · `GlobalExceptionHandler` · `SecurityErrorHandlers`)
   - 공개 경로: 인증 POST 4개, GET `/api/broadcasts/**`, `/actuator/health`, Swagger. 나머지는 인증 필요
   - 테스트 14개 통과(`AuthControllerTest` 13 + contextLoads). 공통 어노테이션 `@IntegrationTest`(Testcontainers + MockMvc)
+- [x] (11-05) PR #15 · #16 develop 머지, 이슈 #1 · #10 닫힘
+- [x] (11-05) #2 방송 관리 API: 브랜치 `feature/broadcast/#2-broadcast-crud`, PR 생성(CI 결과 확인 · 머지 대기)
+  - `broadcasts`(V2): owner_id FK, title(100) · description(1000, 빈 값은 null) · status(CHECK READY/LIVE/ENDED) · started_at · ended_at · created_at · updated_at, 인덱스 (status, created_at desc) · (owner_id, created_at desc)
+  - API: `POST /api/broadcasts`(로그인, 201 + Location), `GET /api/broadcasts?status=&ownerId=&page=&size=`(공개, 최신순, size 최대 50, `PageResponse{items,page,size,totalElements,totalPages,hasNext}`), `GET /api/broadcasts/{id}`(공개), `PATCH`/`DELETE /api/broadcasts/{id}`(소유자만)
+  - 오류 코드: `BROADCAST_NOT_FOUND`(404) · `NOT_BROADCAST_OWNER`(403) · `BROADCAST_LIVE_CANNOT_DELETE`(409) · `BROADCAST_ALREADY_LIVE` · `BROADCAST_NOT_LIVE` · `BROADCAST_ENDED`(409)
+  - 엔티티 상태 전이 `start()`(READY→LIVE) · `end()`(LIVE→ENDED) · `checkDeletable()` 준비 완료 → #3에서 사용. 소유자 확인 공통 관문 `BroadcastService.findOwned(userId, id)`
+  - 목록 · 상세는 `@EntityGraph(owner)`로 N+1 없음. 파라미터 형식 오류(`status=FOO`) → 400
+  - `UserDetailsServiceAutoConfiguration` 제외(생성 비밀번호 로그 제거)
+  - 테스트 37개 통과: `BroadcastControllerTest` 17(비로그인 · 소유자 · 다른 사용자별 등록/수정/삭제, 404, 검증, 필터 · 정렬 · 페이지 크기) + `BroadcastTest` 6(상태 전이) + 인증 14. 테스트 도우미 `AuthSupport.signupNewUser`
 
 ## 현재 상태
-- 백엔드 인증 완료(PR #16), CI 준비(PR #15). 둘 다 사용자 머지 대기.
-- PR #16은 CI 파일이 develop에 없을 때 만들어 CI 결과가 없다 → #15 머지 후 #1 브랜치에 develop을 합치고 push하면 CI가 돈다.
+- 백엔드 인증 · 방송 CRUD 완료. #2 PR 머지 대기(사용자가 "머지해줘" 하면 CI 확인 후 머지).
+- CI가 develop 대상 PR마다 돈다(백엔드 약 1분 30초, 프론트 약 1분 10초).
+- 대시보드: #1 · #10 완료, #2 진행 중(PR 연결).
 
 ## 다음 작업 (순서대로)
-0. 사용자: PR #15 → #16 순서로 머지(#16은 develop 합친 뒤 CI 확인)
-1. **#2 방송 관리 API** (브랜치 `feature/broadcast/#2-…`): `broadcasts` 엔티티(제목·설명·상태·소유자·시작/종료 시각), CRUD API + 소유자 권한 검증 + 비로그인/소유자/타인 테스트
-2. **#3 LiveKit 연동**: 송출 토큰(소유자)/시청 토큰(누구나) 발급, 방송 시작·종료 API(종료 시 deleteRoom), 웹훅 수신
+1. **#3 LiveKit 연동** (브랜치 `feature/live/#3-…`): 송출 토큰(소유자, 방송 시작 시 LIVE 전환)/시청 토큰(누구나, LIVE만) 발급, 방송 종료 API(ENDED + LiveKit deleteRoom), 웹훅 수신(서명 검증, room_finished로 비정상 종료 정리). LiveKit 키 없이도 테스트되게 RoomService는 인터페이스로 감싸 테스트 대역 사용
+   - 필요: LiveKit Cloud 가입 · API 키(로컬 실제 송출 확인용). 테스트만이면 불필요
+2. 프론트부터 갈지 #3부터 갈지는 사용자와 확인 (기본: #3 → #4)
 3. **프론트(#4~#8)**: 로그인/회원가입, 방송 목록·상세·시청, 방송 등록·수정, PC 송출(화면+탭/시스템 소리+마이크), 모바일 송출(카메라+마이크)
 4. **배포(#9)**: EC2 + Docker Compose + Nginx + HTTPS, LiveKit Cloud 프로젝트·키 발급 → 실기기(PC→폰, 폰→PC) 확인
 5. 선택(#11~#13): 댓글 → 도네이션(토스 테스트) → 녹화/다시보기(Egress → S3)
