@@ -7,6 +7,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException e) {
 		return respond(ErrorCode.INVALID_INPUT, ErrorCode.INVALID_INPUT.message());
+	}
+
+	/** 경로 · 쿼리 파라미터의 형식이 틀린 경우. 예) status=FOO, /api/broadcasts/abc */
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+		return respond(ErrorCode.INVALID_INPUT, "'" + e.getName() + "' 값의 형식이 올바르지 않습니다.");
 	}
 
 	@ExceptionHandler(NoResourceFoundException.class)

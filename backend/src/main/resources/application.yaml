@@ -11,6 +11,9 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  autoconfigure:
+    # JWT로만 인증한다. 기본 사용자(생성된 비밀번호 로그)를 만들지 않는다.
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
 
 server:
   forward-headers-strategy: framework
