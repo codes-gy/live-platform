@@ -47,7 +47,7 @@
   - 공개 경로: 인증 POST 4개, GET `/api/broadcasts/**`, `/actuator/health`, Swagger. 나머지는 인증 필요
   - 테스트 14개 통과(`AuthControllerTest` 13 + contextLoads). 공통 어노테이션 `@IntegrationTest`(Testcontainers + MockMvc)
 - [x] (11-05) PR #15 · #16 develop 머지, 이슈 #1 · #10 닫힘
-- [x] (11-05) #2 방송 관리 API: 브랜치 `feature/broadcast/#2-broadcast-crud`, PR #17(머지 대기)
+- [x] (11-05) #2 방송 관리 API: 브랜치 `feature/broadcast/#2-broadcast-crud`, PR #17 develop 머지 완료
   - `broadcasts`(V2): owner_id FK, title(100) · description(1000, 빈 값은 null) · status(CHECK READY/LIVE/ENDED) · started_at · ended_at · created_at · updated_at, 인덱스 (status, created_at desc) · (owner_id, created_at desc)
   - API: `POST /api/broadcasts`(로그인, 201 + Location), `GET /api/broadcasts?status=&ownerId=&page=&size=`(공개, 최신순, size 최대 50, `PageResponse{items,page,size,totalElements,totalPages,hasNext}`), `GET /api/broadcasts/{id}`(공개), `PATCH`/`DELETE /api/broadcasts/{id}`(소유자만)
   - 오류 코드: `BROADCAST_NOT_FOUND`(404) · `NOT_BROADCAST_OWNER`(403) · `BROADCAST_LIVE_CANNOT_DELETE`(409) · `BROADCAST_ALREADY_LIVE` · `BROADCAST_NOT_LIVE` · `BROADCAST_ENDED`(409)
@@ -56,19 +56,29 @@
   - `UserDetailsServiceAutoConfiguration` 제외(생성 비밀번호 로그 제거)
   - 테스트 37개 통과: `BroadcastControllerTest` 17(비로그인 · 소유자 · 다른 사용자별 등록/수정/삭제, 404, 검증, 필터 · 정렬 · 페이지 크기) + `BroadcastTest` 6(상태 전이) + 인증 14. 테스트 도우미 `AuthSupport.signupNewUser`
 
+- [x] (11-05) #3 LiveKit 연동: 브랜치 `feature/live/#3-livekit`, PR(머지 대기)
+  - API(모두 `POST /api/broadcasts/{id}/…`): `start`(소유자, READY→LIVE + 송출 토큰), `publisher-token`(소유자, LIVE, 재접속용), `end`(소유자, LIVE→ENDED + 방 닫기, ENDED면 그대로 200), `viewer-token`(공개, LIVE만, 로그인 시 닉네임). 응답 `LiveAccessResponse{serverUrl, roomName, identity, token, broadcast}`
+  - 웹훅 `POST /api/livekit/webhook`(공개, LiveKit 서명 JWT + 본문 SHA-256 검증, 실패 401 `INVALID_WEBHOOK`)
+    - `room_finished` → LIVE면 ENDED(아무도 안 들어옴 · 모두 나감)
+    - `participant_left`(방송자) → `broadcaster-grace`(30s) 뒤 LiveKit에 방송자가 없으면 ENDED + 방 닫기(시청자가 남아 방이 안 닫히는 경우 대비, 새로고침은 유예로 보호). 예약은 메모리(`liveTaskScheduler`)라 서버 재시작 시 사라짐 → room_finished가 최후 정리
+  - 패키지 `livekit/`: `RoomNames`(방 `broadcast-{id}`, 방송자 `broadcaster-{userId}`, 시청자 `viewer-{uuid}`), `LiveKitTokenIssuer`(송출: camera · microphone · screen_share · screen_share_audio / 시청: 받기 전용 · hidden), `LiveKitRoomClient`(인터페이스) + `SdkLiveKitRoomClient`(createRoom emptyTimeout 2m · departureTimeout 1m, deleteRoom 404 무시, wss→https 변환, 키 없으면 503 `LIVEKIT_NOT_CONFIGURED`), `LiveKitWebhookVerifier`
+  - 동시성: `findForUpdateById`(비관적 잠금)로 상태 변경. LiveKit 호출은 트랜잭션 밖(시작=방 만들기 성공 후 LIVE, 실패 시 502 `LIVEKIT_UNAVAILABLE`이고 READY 유지 / 종료=ENDED 후 방 닫기, 실패해도 종료 유지)
+  - 설정 `app.livekit.*`: url · api-key · api-secret · empty-timeout · departure-timeout · broadcaster-grace · token-ttl(1h, SDK는 밀리초로 받음 — 테스트로 확인)
+  - SDK 메모: livekit-server 0.17.0은 Jackson 2(com.fasterxml) · java-jwt를 끌고 옴. Boot 4의 Jackson 3과 패키지가 달라 충돌 없음. 토큰에 `nbf` 클레임 없음
+  - 테스트 70개 통과: `BroadcastLiveControllerTest` 21(시작 · 재발급 · 시청 · 종료 × 비로그인/소유자/타인, 토큰 권한 클레임, LiveKit 실패), `LiveKitWebhookControllerTest` 9(서명 위조 · 본문 변조 · 서명 없음 · 중복 · 방송자 이탈/복귀 · 시청자 이탈 · 남의 방), `LiveKitNamingTest` 3. 테스트는 `FakeLiveKitRoomClient`(@Primary)와 가짜 키(`IntegrationTest` properties)를 쓴다
+
 ## 현재 상태
-- 백엔드 인증 · 방송 CRUD 완료. #2 PR 머지 대기(사용자가 "머지해줘" 하면 CI 확인 후 머지).
-- CI가 develop 대상 PR마다 돈다(백엔드 약 1분 30초, 프론트 약 1분 10초).
-- 대시보드: #1 · #10 완료, #2 진행 중(PR 연결).
+- 백엔드 필수 기능(인증 · 방송 CRUD · 송출 제어) 완료. #3 PR 머지 대기.
+- 실제 LiveKit Cloud로는 아직 송출해 보지 않음(키 없음). 프론트(#4~#8)에서 실제 키로 확인 필요.
+- 대시보드: #1 · #2 · #10 완료, #3 진행 중.
 
 ## 다음 작업 (순서대로)
-1. **#3 LiveKit 연동** (브랜치 `feature/live/#3-…`): 송출 토큰(소유자, 방송 시작 시 LIVE 전환)/시청 토큰(누구나, LIVE만) 발급, 방송 종료 API(ENDED + LiveKit deleteRoom), 웹훅 수신(서명 검증, room_finished로 비정상 종료 정리). LiveKit 키 없이도 테스트되게 RoomService는 인터페이스로 감싸 테스트 대역 사용
-   - 필요: LiveKit Cloud 가입 · API 키(로컬 실제 송출 확인용). 테스트만이면 불필요
-2. 프론트부터 갈지 #3부터 갈지는 사용자와 확인 (기본: #3 → #4)
-3. **프론트(#4~#8)**: 로그인/회원가입, 방송 목록·상세·시청, 방송 등록·수정, PC 송출(화면+탭/시스템 소리+마이크), 모바일 송출(카메라+마이크)
-4. **배포(#9)**: EC2 + Docker Compose + Nginx + HTTPS, LiveKit Cloud 프로젝트·키 발급 → 실기기(PC→폰, 폰→PC) 확인
-5. 선택(#11~#13): 댓글 → 도네이션(토스 테스트) → 녹화/다시보기(Egress → S3)
-6. README 완성(#14)(서비스 URL, 테스트 계정, 실행 방법, 기능 확인 절차, 지원 환경, 오픈소스 출처)
+1. **프론트(#4~#8)** — 먼저 #4 로그인 · 회원가입 · 인증 상태(Next.js `/api` rewrites로 Spring 프록시 → 쿠키 같은 출처). 이어서 #5 목록 · 상세 · 시청, #6 등록 · 수정 · 삭제, #7 PC 송출, #8 모바일 송출
+   - #7 · #8 실제 확인에는 LiveKit Cloud 키 필요(로컬 `.env`)
+2. **배포(#9)** — 호스팅 미정(아래 "사용자 확인 필요"). 프론트가 `/api`를 백엔드로 프록시하면 프론트 · 백엔드를 다른 곳에 올려도 쿠키가 같은 출처로 붙는다
+3. 선택(#11~#13): 댓글 → 도네이션(토스 테스트) → 녹화/다시보기(Egress → S3 등)
+4. README 완성(#14)(서비스 URL, 테스트 계정, 실행 방법, 기능 확인 절차, 지원 환경, 오픈소스 출처)
 
 ## 사용자 확인 필요
-- 도메인 보유 여부 (HTTPS 인증서용) · AWS 계정/S3 버킷 · LiveKit Cloud 가입 · 토스페이먼츠 테스트 키
+- LiveKit Cloud 가입 · API 키 · 토스페이먼츠 테스트 키
+- 백엔드 호스팅(EC2 대신, 오라클 · GCP 제외): 11-05 후보 제시 — Railway(추천: Spring + PostgreSQL 한 곳, HTTPS 자동, 슬립 없음, 월 약 $5) · Fly.io(도쿄 리전) · Render(무료는 슬립 · 무료 DB 30일 만료) · Heroku(사용자 경험 있음) · Lightsail/DigitalOcean/Vultr VPS(기존 Docker Compose 계획 그대로) · NCP. 프론트는 Vercel + `/api` rewrites 조합. **사용자 결정 대기**
