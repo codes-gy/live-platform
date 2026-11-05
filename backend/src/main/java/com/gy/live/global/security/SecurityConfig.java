@@ -19,7 +19,9 @@ public class SecurityConfig {
 
 	/** 로그인 없이 쓰는 경로. 방송 목록 · 상세 · 시청은 공모전 요구사항상 비로그인도 허용한다. */
 	private static final String[] PUBLIC_POST = {
-			"/api/auth/signup", "/api/auth/login", "/api/auth/logout", "/api/auth/test-login"
+			"/api/auth/signup", "/api/auth/login", "/api/auth/logout", "/api/auth/test-login",
+			// 시청 토큰은 비로그인도 받는다. 웹훅은 LiveKit 서명으로 따로 검증한다
+			"/api/broadcasts/*/viewer-token", "/api/livekit/webhook"
 	};
 	private static final String[] PUBLIC_GET = {
 			"/api/broadcasts", "/api/broadcasts/**",

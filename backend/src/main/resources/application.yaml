@@ -38,3 +38,7 @@ app:
     url: ${LIVEKIT_URL:}
     api-key: ${LIVEKIT_API_KEY:}
     api-secret: ${LIVEKIT_API_SECRET:}
+    empty-timeout: 2m
+    departure-timeout: 1m
+    broadcaster-grace: 30s
+    token-ttl: 1h
