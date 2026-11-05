@@ -98,5 +98,6 @@
 4. 선택(#11~#13), README(#14)
 
 ## 사용자 확인 필요
+- (11-05) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
 - LiveKit Cloud 가입 · API 키 · 토스페이먼츠 테스트 키
 - 백엔드 호스팅(EC2 대신, 오라클 · GCP 제외): 11-05 후보 제시 — Railway(추천: Spring + PostgreSQL 한 곳, HTTPS 자동, 슬립 없음, 월 약 $5) · Fly.io(도쿄 리전) · Render(무료는 슬립 · 무료 DB 30일 만료) · Heroku(사용자 경험 있음) · Lightsail/DigitalOcean/Vultr VPS(기존 Docker Compose 계획 그대로) · NCP. 프론트는 Vercel + `/api` rewrites 조합. **사용자 결정 대기**
