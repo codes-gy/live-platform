@@ -27,7 +27,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 ```bash
 docker compose up -d                  # PostgreSQL
 cd backend && ./gradlew bootRun       # http://localhost:8080
-cd frontend && npm install && npm run dev   # http://localhost:3000
+cd frontend && npm install && npm run dev   # http://localhost:3000 (/api 는 BACKEND_URL=http://localhost:8080 으로 전달)
 ```
 
 ### 테스트
