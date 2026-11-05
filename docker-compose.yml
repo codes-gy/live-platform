@@ -11,5 +11,16 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql
 
+  # 선택: LiveKit Cloud 없이 로컬에서 송출 · 시청을 시험할 때 (docker compose --profile livekit up -d)
+  # --dev 모드의 공개 개발용 키: LIVEKIT_API_KEY=devkey, LIVEKIT_API_SECRET=secret, LIVEKIT_URL=ws://localhost:7880
+  livekit:
+    image: livekit/livekit-server:v1.9.1
+    command: --dev --bind 0.0.0.0
+    profiles: [livekit]
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+
 volumes:
   pgdata:
