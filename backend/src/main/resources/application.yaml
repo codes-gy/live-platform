@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: live-platform
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/live}
+    username: ${DB_USERNAME:live}
+    password: ${DB_PASSWORD:live}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+server:
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-change-me-local-dev-secret-change-me}
+    access-token-ttl: 1h
+  livekit:
+    url: ${LIVEKIT_URL:}
+    api-key: ${LIVEKIT_API_KEY:}
+    api-secret: ${LIVEKIT_API_SECRET:}

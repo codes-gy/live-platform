@@ -1,0 +1,15 @@
+# 로컬 개발용 DB. 운영 배포용 compose는 별도(deploy/)로 둔다.
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: live
+      POSTGRES_USER: live
+      POSTGRES_PASSWORD: live
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+volumes:
+  pgdata:
