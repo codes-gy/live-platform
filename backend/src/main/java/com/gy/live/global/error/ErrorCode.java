@@ -18,7 +18,11 @@ public enum ErrorCode {
 	BROADCAST_ALREADY_LIVE(HttpStatus.CONFLICT, "이미 방송 중입니다."),
 	BROADCAST_NOT_LIVE(HttpStatus.CONFLICT, "방송 중이 아닙니다."),
 	BROADCAST_ENDED(HttpStatus.CONFLICT, "이미 종료된 방송입니다."),
-	BROADCAST_LIVE_CANNOT_DELETE(HttpStatus.CONFLICT, "방송 중에는 삭제할 수 없습니다. 방송을 먼저 종료해 주세요.");
+	BROADCAST_LIVE_CANNOT_DELETE(HttpStatus.CONFLICT, "방송 중에는 삭제할 수 없습니다. 방송을 먼저 종료해 주세요."),
+
+	LIVEKIT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "방송 서버 설정이 없어 송출 · 시청할 수 없습니다."),
+	LIVEKIT_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "방송 서버와 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+	INVALID_WEBHOOK(HttpStatus.UNAUTHORIZED, "웹훅 서명이 올바르지 않습니다.");
 
 	private final HttpStatus status;
 	private final String message;
