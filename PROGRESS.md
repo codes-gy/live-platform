@@ -67,7 +67,7 @@
   - SDK 메모: livekit-server 0.17.0은 Jackson 2(com.fasterxml) · java-jwt를 끌고 옴. Boot 4의 Jackson 3과 패키지가 달라 충돌 없음. 토큰에 `nbf` 클레임 없음
   - 테스트 70개 통과: `BroadcastLiveControllerTest` 21(시작 · 재발급 · 시청 · 종료 × 비로그인/소유자/타인, 토큰 권한 클레임, LiveKit 실패), `LiveKitWebhookControllerTest` 9(서명 위조 · 본문 변조 · 서명 없음 · 중복 · 방송자 이탈/복귀 · 시청자 이탈 · 남의 방), `LiveKitNamingTest` 3. 테스트는 `FakeLiveKitRoomClient`(@Primary)와 가짜 키(`IntegrationTest` properties)를 쓴다
 
-- [x] (11-05) #4 프론트 로그인 · 회원가입 · 인증 상태: 브랜치 `feature/auth/#4-auth-front`, PR(머지 대기)
+- [x] (11-05) #4 프론트 로그인 · 회원가입 · 인증 상태: 브랜치 `feature/auth/#4-auth-front`, PR #19(머지 대기)
   - **Next.js 16 주의**: `middleware` → `proxy.ts`(`export function proxy`), `searchParams`는 Promise, `cacheComponents: true`라 `searchParams` 읽는 부분은 `<Suspense>` 안에서(밖이면 빌드 에러 "uncached data during prerendering"). `next.config.ts`의 `turbopack.rules["*.css"] = @tailwindcss/turbopack` 로더를 지우면 Tailwind `@theme`가 안 먹는다(덮어쓰지 말 것). 전역 타입 `PageProps<"/route">` · `LayoutProps<"/">` 사용
   - `/api/:path*` → `BACKEND_URL`(기본 http://localhost:8080) rewrites. 빌드 시점에 읽힘. Set-Cookie가 그대로 전달됨을 실제 서버로 확인
   - `src/lib/api.ts`(`api<T>()`, `ApiError{status, code, message}`), `src/lib/navigation.ts`(`safeNext`: `/`로 시작 · `//` · `/\` 거부, `loginPath`)
