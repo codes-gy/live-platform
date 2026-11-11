@@ -67,7 +67,7 @@
   - SDK 메모: livekit-server 0.17.0은 Jackson 2(com.fasterxml) · java-jwt를 끌고 옴. Boot 4의 Jackson 3과 패키지가 달라 충돌 없음. 토큰에 `nbf` 클레임 없음
   - 테스트 70개 통과: `BroadcastLiveControllerTest` 21(시작 · 재발급 · 시청 · 종료 × 비로그인/소유자/타인, 토큰 권한 클레임, LiveKit 실패), `LiveKitWebhookControllerTest` 9(서명 위조 · 본문 변조 · 서명 없음 · 중복 · 방송자 이탈/복귀 · 시청자 이탈 · 남의 방), `LiveKitNamingTest` 3. 테스트는 `FakeLiveKitRoomClient`(@Primary)와 가짜 키(`IntegrationTest` properties)를 쓴다
 
-- [x] (11-05) #4 프론트 로그인 · 회원가입 · 인증 상태: 브랜치 `feature/auth/#4-auth-front`, PR #19(머지 대기)
+- [x] (11-05) #4 프론트 로그인 · 회원가입 · 인증 상태: 브랜치 `feature/auth/#4-auth-front`, PR #19 develop 머지 완료
   - **Next.js 16 주의**: `middleware` → `proxy.ts`(`export function proxy`), `searchParams`는 Promise, `cacheComponents: true`라 `searchParams` 읽는 부분은 `<Suspense>` 안에서(밖이면 빌드 에러 "uncached data during prerendering"). `next.config.ts`의 `turbopack.rules["*.css"] = @tailwindcss/turbopack` 로더를 지우면 Tailwind `@theme`가 안 먹는다(덮어쓰지 말 것). 전역 타입 `PageProps<"/route">` · `LayoutProps<"/">` 사용
   - `/api/:path*` → `BACKEND_URL`(기본 http://localhost:8080) rewrites. 빌드 시점에 읽힘. Set-Cookie가 그대로 전달됨을 실제 서버로 확인
   - `src/lib/api.ts`(`api<T>()`, `ApiError{status, code, message}`), `src/lib/navigation.ts`(`safeNext`: `/`로 시작 · `//` · `/\` 거부, `loginPath`)
@@ -79,18 +79,25 @@
   - `.env.example`: `NEXT_PUBLIC_API_BASE_URL` 삭제 → `BACKEND_URL`
   - 로컬 메모: 3000 포트는 사용자의 다른 Node 프로세스(포트폴리오 dev 서버로 추정)가 쓰고 있어 3100 사용
 
+- [x] (11-05) #5 방송 목록 · 상세 · 시청: 브랜치 `feature/broadcast/#5-watch`, PR #20(머지 대기)
+  - `lib/broadcast.ts`: 타입(Broadcast · Page · LiveAccess), 상태 라벨, 시간 포맷(`formatAgo` · `formatDuration` · `describeTime`)
+  - `/`: `BroadcastList`(탭 방송 중 · 전체 · 종료, size 12 더 보기(ID로 중복 제거), 방송 중 탭 20초 폴링), `BroadcastCard`(썸네일 대신 상태 화면 + 제목), `StatusBadge`
+  - `/broadcasts/[id]`: `BroadcastDetail`(없음 · 오류 · 방송 전 10초 폴링 · 종료 화면), `LivePlayer`(viewer-token → `LiveKitRoom` audio/video=false, adaptiveStream, `useTracks([ScreenShare, Camera], onlySubscribed)` 화면 우선, `RoomAudioRenderer`(마이크 + 화면 소리, muted 토글), `StartAudio`("눌러서 소리 켜기"), 전체 화면, 연결 상태 오버레이, `DisconnectReason.ROOM_DELETED` → 종료 화면, 그 외 끊김 → 다시 연결, 키 없으면(503) 재시도 없이 안내)
+  - **Next.js 16 · React 규칙 메모**: 클라이언트 컴포넌트에서 렌더 중 `Date.now()` 금지(프리렌더 에러) → 데이터 받을 때 `setNow`. eslint `react-hooks/set-state-in-effect`: 이펙트 안에서 setState 하는 함수를 직접 부르면 에러 → fetch 함수는 결과(State)를 돌려주고 `.then(setState)`로만 반영. 동적 라우트 `params`도 `<Suspense>` 안에서 await
+  - 로컬 LiveKit 개발 서버로 실제 확인(`docker compose --profile livekit up -d`, devkey/secret, ws://localhost:7880): 시작 시 **실제 CreateRoom(emptyTimeout 120 · departureTimeout 60)**, 종료 시 **실제 DeleteRoom → room closed**, 다른 사용자 시작 403, 방송 전 · 종료 후 시청 토큰 409, 비로그인 시청 토큰 200, 목록 LIVE 필터, 페이지 200
+  - 못 한 것: 브라우저에서 실제 영상 재생(Chrome 확장 미연결). `lk` CLI v2는 자체 토큰만 써서 우리 토큰 검증 불가 → #7에서 브라우저로 송출 · 시청 함께 확인
+
 ## 현재 상태
-- 백엔드 필수 기능 + 프론트 인증 완료(#4 PR 머지 대기).
-- 실제 LiveKit Cloud로는 아직 송출해 보지 않음(키 없음).
-- 대시보드: #1 · #2 · #3 · #10 완료, #4 진행 중. "백엔드 배포 후보" 표(데이터셋 `hosting`, "Sample" 표시 = Claude 정리값)
+- 프론트 목록 · 상세 · 시청 완료(#5 PR 머지 대기). 실제 영상 재생은 #7 송출 화면이 생긴 뒤 브라우저로 확인.
+- 대시보드: #1 · #2 · #3 · #4 · #10 완료, #5 진행 중.
 
 ## 다음 작업 (순서대로)
-1. **#5 방송 목록 · 상세 · 시청 화면** (브랜치 `feature/broadcast/#5-…`): `/`에 방송 목록(방송 중 / 종료 탭, 페이지), `/broadcasts/[id]` 상세 + LiveKit 시청(`viewer-token` → `@livekit/components-react`로 방 접속, 방송자 트랙 재생, 자동재생 막히면 소리 켜기 버튼, 종료 시 안내). 시청 화면은 키 없으면 503 안내
-2. #6 등록 · 수정 · 삭제 화면(`/broadcasts/new`, `/broadcasts/[id]/edit`, `/my`에 내 방송), #7 PC 송출, #8 모바일 송출(실제 확인에 LiveKit 키 필요)
+1. **#6 방송 등록 · 수정 · 삭제 화면** (브랜치 `feature/broadcast/#6-…`): `/broadcasts/new`(proxy 보호), `/broadcasts/[id]/edit`(소유자만, 아니면 403 안내), `/my`에 내 방송 목록(`ownerId`) + 만들기 버튼, 상세에서 소유자에게만 수정 · 삭제 · 송출 화면 버튼, 방송 중 삭제 409 안내
+2. #7 PC 송출(`/studio/[id]`: getDisplayMedia 화면 + 탭/시스템 소리, 마이크 별도 트랙, 시작/종료), #8 모바일 송출(카메라 전/후면 + 마이크, Wake Lock) — 로컬 LiveKit 프로필 + 브라우저로 확인(Chrome 확장 연결 또는 사용자 직접)
 3. **배포(#9)** — 호스팅 결정 대기
-4. 선택(#11~#13): 댓글 → 도네이션 → 녹화/다시보기
-5. README 완성(#14)
+4. 선택(#11~#13), README(#14)
 
 ## 사용자 확인 필요
+- (11-05) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
 - LiveKit Cloud 가입 · API 키 · 토스페이먼츠 테스트 키
 - 백엔드 호스팅(EC2 대신, 오라클 · GCP 제외): 11-05 후보 제시 — Railway(추천: Spring + PostgreSQL 한 곳, HTTPS 자동, 슬립 없음, 월 약 $5) · Fly.io(도쿄 리전) · Render(무료는 슬립 · 무료 DB 30일 만료) · Heroku(사용자 경험 있음) · Lightsail/DigitalOcean/Vultr VPS(기존 Docker Compose 계획 그대로) · NCP. 프론트는 Vercel + `/api` rewrites 조합. **사용자 결정 대기**
