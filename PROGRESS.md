@@ -103,16 +103,29 @@
   - 테스트 97개 통과(`CommentControllerTest` 27 추가). 실서버 curl로 SSE 헤더 · 이벤트 순서 확인
   - 후속: 레이트 리밋, 재연결 때 프론트가 목록 첫 페이지를 다시 받아 id로 합치기, Next rewrite 경유 SSE 버퍼링(gzip) 확인 → 필요하면 `compress: false`, 다중 서버면 pub/sub
 
+- [x] (11-12) #7 PC 송출: 브랜치 `feature/live/#7-pc-broadcast`(하위 세션 구현 · 메인 세션 검토), PR 대기
+  - `/studio/[id]`(RequireAuth + 소유자 아니면 "송출할 권한이 없습니다", getDisplayMedia 없는 브라우저는 PC Chrome/Edge 안내)
+  - `components/studio/`: `media.ts`(`Capture{screen, screenAudio, mic, micMuted}`, `captureScreen` = `createLocalScreenTracks({audio, systemAudio:"include", selfBrowserSurface:"exclude", surfaceSwitching:"include", 1080p30})`, 취소는 null, `captureMic` 실패 null), `useBroadcastSession.ts`(상태 `setup | connecting | live | ending | ended`, raw `Room`으로 직접 연결 · 퍼블리시), `Studio.tsx`(화면/마이크 선택 → 미리보기 → 방송 시작 · 재개, 마이크 켜기/끄기(방송 전) · 음소거(방송 중), 화면 바꾸기, 종료 확인, 경과 시간, beforeunload 경고)
+  - setup은 READY면 "방송 시작"(`start`), LIVE면 "방송 재개"(`publisher-token`). ROOM_DELETED · `BROADCAST_ENDED` → 종료 화면. 그 밖의 끊김 · 연결 실패 → setup + 안내 문구(재개 버튼으로 다시 연결)
+  - 브라우저 "공유 중지" 막대 → 방 연결은 유지, 화면만 비우고 다시 선택 안내(SDK가 끝난 ScreenShare 트랙을 자동 unpublish — `handleTrackEnded` 확인)
+  - **결정**: 화면을 떠나거나 `<Activity>`로 숨겨지면 방 연결 · 캡처를 모두 정리(숨은 탭에서 몰래 화면을 캡처하지 않도록). 종료 API는 부르지 않음 → 30초 안에 돌아와 "재개"하면 이어지고, 아니면 서버 유예로 자동 종료. 오래된 비동기 결과는 epoch 카운터로 무시
+  - 확인: lint · build 통과. **실제 LiveKit Cloud로 Playwright E2E 통과**(Chromium 가짜 화면 · 마이크): 비로그인 /studio → 로그인 이동, 화면 선택 전 시작 비활성, 미리보기, 시작 → 서버 LIVE, 비로그인 시청자가 영상(videoWidth>0) + 오디오 2개(마이크 · 화면 소리) 수신, 음소거 토글, 새로고침 → "방송 재개" · 서버 LIVE 유지 → 재개 후 시청자 영상 복귀, 종료 → 양쪽 "방송이 종료되었습니다" · 서버 ENDED · 캡처 정리, 다른 사용자 /studio 권한 없음 안내 · start API 403
+  - 스크립트: 세션 scratchpad의 `e2e/pc-broadcast.mjs`(저장소 밖). 커밋하려면 `frontend/e2e/`로 옮기고 Playwright 의존성 추가 필요
+  - 못 한 것: 실제 Chrome 탭 오디오 · Windows 시스템 오디오 체크박스 동작, 다른 기기(휴대폰)에서 시청 → 사용자 수동 확인 필요
+  - 알려진 빈틈: start 요청 중 화면을 떠나면 서버는 LIVE인데 방송자 없음 → LiveKit 방 emptyTimeout(2분)으로 room_finished → ENDED 정리
+
 ## 현재 상태
-- 필수: 백엔드 전부 + 프론트 인증 · 목록 · 상세 · 시청 · 등록 · 수정 · 삭제 완료(PR #20 · #21 · #22 머지, 11-11). 남은 필수는 #7 · #8 송출, #9 배포, #14 README
+- 필수: 백엔드 전부 + 프론트 인증 · 목록 · 상세 · 시청 · 등록 · 수정 · 삭제 완료(PR #20 · #21 · #22 머지, 11-11). 남은 필수는 #8 모바일 송출, #9 배포, #14 README
+- #7 PC 송출 구현 · E2E 완료(11-12, PR 대기)
 - 선택: 댓글 백엔드 완료(#11), 프론트 댓글 UI 미구현
 - 작업 방식(11-11): 메인 세션이 하위 세션(pstack:poteto-agent, worktree 격리)에 백엔드 · 프론트를 나눠 맡기고, 결과를 모아 사용자 승인 후 push · PR · 머지. 하위 세션은 로컬 커밋까지만, PROGRESS.md는 메인 세션만 수정
 - 대시보드: #1~#6 · #10 · #11 완료로 갱신 필요(이번에 미갱신)
-- 로컬 메모: 5432는 이미 떠 있는 `live-platform-postgres-1` 공유(워크트리에서 `docker compose up -d` 하면 포트 충돌). 하위 세션 워크트리 `project/live-platform/.claude/worktrees/agent-*` 2개 남아 있음(정리 가능)
+- 로컬 환경(11-12): 개발 PC가 **WSL2**로 바뀜(`/mnt/a/project/live-platform`). Java 25는 `/usr/lib/jvm/java-25-openjdk-amd64`(기본 java는 21 → bootRun 시 `JAVA_HOME` 지정). Docker Desktop은 WSL integration을 켜야 `docker` 사용 가능. 루트 `.env`에 LiveKit Cloud 키 입력됨(ListRooms 200으로 확인) — 백엔드는 `.env`를 자동으로 안 읽으므로 `set -a; . ../.env; set +a` 후 bootRun
+- E2E 실행 방법: Postgres(5432) + 백엔드(8080, LiveKit Cloud env) + `next start -p 3100` 후 `node pc-broadcast.mjs`
 
 ## 다음 작업 (순서대로)
-1. **#7 PC 송출** (브랜치 `feature/live/#7-…`): `/studio/[id]`(소유자만) — getDisplayMedia 화면 + 탭/시스템 소리, 마이크 별도 트랙, 방송 시작(start API → 송출 토큰)/종료, 재접속(publisher-token). 로컬 LiveKit 프로필 + 브라우저로 송출 · 시청 함께 확인
-2. **#8 모바일 송출**: 카메라 전/후면 + 마이크, Wake Lock (#7과 같은 studio 화면에서 기기별 분기)
+1. **#7 PR 올리기 · 머지**(사용자 승인 후) + 실제 Chrome에서 탭 오디오 · 다른 기기 시청 수동 확인
+2. **#8 모바일 송출**: 같은 `/studio/[id]`에서 `getDisplayMedia` 없으면(휴대폰) 카메라 모드 — `Capture.screen` 자리에 카메라 트랙(source Camera), 전/후면 전환, 마이크, Wake Lock. 지금은 "PC Chrome/Edge 필요" 안내가 나오는 분기를 카메라 송출로 바꾸면 됨. 실제 휴대폰 확인은 HTTPS 필요 → 배포(#9) 또는 터널 필요
 3. **댓글 프론트(#11 후속)**: 시청 화면 옆 댓글 패널(목록 + SSE + 작성, 재연결 시 첫 페이지 다시 받아 합치기), SSE가 Next rewrite에서 버퍼링되는지 확인. 백엔드 하위 세션은 #12 도네이션(토스 테스트 키 필요) 또는 #13 녹화 준비 가능
 4. **배포(#9)** — 호스팅 결정 대기
 5. README(#14)
@@ -120,5 +133,5 @@
 ## 사용자 확인 필요
 - (11-05, 11-11 설치 확인됨) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
 - 방송 중 제목 · 설명 수정 허용 여부(현재 허용)
-- LiveKit Cloud 가입 · API 키 · 토스페이먼츠 테스트 키
+- ~~LiveKit Cloud 키~~ 11-12 완료. 토스페이먼츠 테스트 키는 #12 때
 - 백엔드 호스팅(EC2 대신, 오라클 · GCP 제외): 11-05 후보 제시 — Railway(추천: Spring + PostgreSQL 한 곳, HTTPS 자동, 슬립 없음, 월 약 $5) · Fly.io(도쿄 리전) · Render(무료는 슬립 · 무료 DB 30일 만료) · Heroku(사용자 경험 있음) · Lightsail/DigitalOcean/Vultr VPS(기존 Docker Compose 계획 그대로) · NCP. 프론트는 Vercel + `/api` rewrites 조합. **사용자 결정 대기**
