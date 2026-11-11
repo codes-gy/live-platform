@@ -1,3 +1,5 @@
+import { api, ApiError } from "./api";
+
 export type BroadcastStatus = "READY" | "LIVE" | "ENDED";
 
 export type Broadcast = {
@@ -28,6 +30,34 @@ export type LiveAccess = {
   token: string;
   broadcast: Broadcast;
 };
+
+/** 백엔드 BroadcastInfoRequest의 검증과 같은 한도 */
+export const TITLE_MAX = 100;
+export const DESCRIPTION_MAX = 1000;
+
+export type BroadcastInput = { title: string; description: string };
+
+/** 주소의 방송 ID. 숫자가 아니면 0(없는 ID)을 돌려줘 "찾을 수 없음"으로 보이게 한다. */
+export function parseBroadcastId(raw: string): number {
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && id > 0 ? id : 0;
+}
+
+export type BroadcastLoad =
+  | { kind: "ok"; broadcast: Broadcast }
+  | { kind: "not-found" }
+  | { kind: "error"; message: string };
+
+export async function loadBroadcast(id: number): Promise<BroadcastLoad> {
+  try {
+    return { kind: "ok", broadcast: await api<Broadcast>(`/api/broadcasts/${id}`) };
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.code === "INVALID_INPUT")) {
+      return { kind: "not-found" };
+    }
+    return { kind: "error", message: e instanceof ApiError ? e.message : "방송 정보를 불러오지 못했습니다." };
+  }
+}
 
 export const STATUS_LABEL: Record<BroadcastStatus, string> = {
   LIVE: "방송 중",
