@@ -23,6 +23,7 @@ public class SecurityConfig {
 			// 시청 토큰은 비로그인도 받는다. 웹훅은 LiveKit 서명으로 따로 검증한다
 			"/api/broadcasts/*/viewer-token", "/api/livekit/webhook"
 	};
+	/** 방송 아래 GET 전부: 목록 · 상세 · 댓글 목록 · 댓글 실시간 구독(SSE). 댓글 작성 · 수정 · 삭제는 인증 필요. */
 	private static final String[] PUBLIC_GET = {
 			"/api/broadcasts", "/api/broadcasts/**",
 			"/actuator/health", "/swagger-ui/**", "/v3/api-docs/**"

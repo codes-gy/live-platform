@@ -97,6 +97,14 @@ public class Broadcast {
 		this.updatedAt = this.endedAt;
 	}
 
+	/** 방송 중에만 할 수 있는 일(시청 · 송출 토큰 · 댓글 작성) 앞에서 확인한다. */
+	public void checkLive() {
+		if (status != BroadcastStatus.LIVE) {
+			throw new BusinessException(status == BroadcastStatus.ENDED
+					? ErrorCode.BROADCAST_ENDED : ErrorCode.BROADCAST_NOT_LIVE);
+		}
+	}
+
 	public void checkDeletable() {
 		if (status == BroadcastStatus.LIVE) {
 			throw new BusinessException(ErrorCode.BROADCAST_LIVE_CANNOT_DELETE);

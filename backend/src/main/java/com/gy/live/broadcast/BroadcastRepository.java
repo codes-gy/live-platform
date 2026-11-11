@@ -34,4 +34,12 @@ public interface BroadcastRepository extends JpaRepository<Broadcast, Long> {
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select b from Broadcast b where b.id = :id")
 	Optional<Broadcast> findForUpdateById(@Param("id") Long id);
+
+	/**
+	 * 댓글 작성용 공유 잠금(FOR SHARE). 댓글끼리는 막지 않고, 종료의 쓰기 잠금(FOR NO KEY UPDATE)과는 서로 기다린다.
+	 * 그래서 종료가 커밋된 뒤에는 댓글이 생기지 않고, 실시간 구독자에게 ended가 마지막으로 간다.
+	 */
+	@Lock(LockModeType.PESSIMISTIC_READ)
+	@Query("select b from Broadcast b where b.id = :id")
+	Optional<Broadcast> findForShareById(@Param("id") Long id);
 }
