@@ -103,7 +103,7 @@
   - 테스트 97개 통과(`CommentControllerTest` 27 추가). 실서버 curl로 SSE 헤더 · 이벤트 순서 확인
   - 후속: 레이트 리밋, 재연결 때 프론트가 목록 첫 페이지를 다시 받아 id로 합치기, Next rewrite 경유 SSE 버퍼링(gzip) 확인 → 필요하면 `compress: false`, 다중 서버면 pub/sub
 
-- [x] (11-12) #7 PC 송출: 브랜치 `feature/live/#7-pc-broadcast`(하위 세션 구현 · 메인 세션 검토), PR 대기
+- [x] (11-12) #7 PC 송출: 브랜치 `feature/live/#7-pc-broadcast`(하위 세션 구현 · 메인 세션 검토), PR #24(머지 대기)
   - `/studio/[id]`(RequireAuth + 소유자 아니면 "송출할 권한이 없습니다", getDisplayMedia 없는 브라우저는 PC Chrome/Edge 안내)
   - `components/studio/`: `media.ts`(`Capture{screen, screenAudio, mic, micMuted}`, `captureScreen` = `createLocalScreenTracks({audio, systemAudio:"include", selfBrowserSurface:"exclude", surfaceSwitching:"include", 1080p30})`, 취소는 null, `captureMic` 실패 null), `useBroadcastSession.ts`(상태 `setup | connecting | live | ending | ended`, raw `Room`으로 직접 연결 · 퍼블리시), `Studio.tsx`(화면/마이크 선택 → 미리보기 → 방송 시작 · 재개, 마이크 켜기/끄기(방송 전) · 음소거(방송 중), 화면 바꾸기, 종료 확인, 경과 시간, beforeunload 경고)
   - setup은 READY면 "방송 시작"(`start`), LIVE면 "방송 재개"(`publisher-token`). ROOM_DELETED · `BROADCAST_ENDED` → 종료 화면. 그 밖의 끊김 · 연결 실패 → setup + 안내 문구(재개 버튼으로 다시 연결)
@@ -116,7 +116,7 @@
 
 ## 현재 상태
 - 필수: 백엔드 전부 + 프론트 인증 · 목록 · 상세 · 시청 · 등록 · 수정 · 삭제 완료(PR #20 · #21 · #22 머지, 11-11). 남은 필수는 #8 모바일 송출, #9 배포, #14 README
-- #7 PC 송출 구현 · E2E 완료(11-12, PR 대기)
+- #7 PC 송출 구현 · E2E 완료(11-12, PR #24 머지 대기)
 - 선택: 댓글 백엔드 완료(#11), 프론트 댓글 UI 미구현
 - 작업 방식(11-11): 메인 세션이 하위 세션(pstack:poteto-agent, worktree 격리)에 백엔드 · 프론트를 나눠 맡기고, 결과를 모아 사용자 승인 후 push · PR · 머지. 하위 세션은 로컬 커밋까지만, PROGRESS.md는 메인 세션만 수정
 - 대시보드: #1~#6 · #10 · #11 완료로 갱신 필요(이번에 미갱신)
@@ -124,7 +124,7 @@
 - E2E 실행 방법: Postgres(5432) + 백엔드(8080, LiveKit Cloud env) + `next start -p 3100` 후 `node pc-broadcast.mjs`
 
 ## 다음 작업 (순서대로)
-1. **#7 PR 올리기 · 머지**(사용자 승인 후) + 실제 Chrome에서 탭 오디오 · 다른 기기 시청 수동 확인
+1. **PR #24 CI 확인 · 머지**(사용자 요청 시) + 실제 Chrome에서 탭 오디오 · 다른 기기 시청 수동 확인
 2. **#8 모바일 송출**: 같은 `/studio/[id]`에서 `getDisplayMedia` 없으면(휴대폰) 카메라 모드 — `Capture.screen` 자리에 카메라 트랙(source Camera), 전/후면 전환, 마이크, Wake Lock. 지금은 "PC Chrome/Edge 필요" 안내가 나오는 분기를 카메라 송출로 바꾸면 됨. 실제 휴대폰 확인은 HTTPS 필요 → 배포(#9) 또는 터널 필요
 3. **댓글 프론트(#11 후속)**: 시청 화면 옆 댓글 패널(목록 + SSE + 작성, 재연결 시 첫 페이지 다시 받아 합치기), SSE가 Next rewrite에서 버퍼링되는지 확인. 백엔드 하위 세션은 #12 도네이션(토스 테스트 키 필요) 또는 #13 녹화 준비 가능
 4. **배포(#9)** — 호스팅 결정 대기
