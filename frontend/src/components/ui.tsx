@@ -43,3 +43,14 @@ export function ErrorMessage({ message }: { message: string | null }) {
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-line bg-surface p-6 sm:p-8 ${className}`}>{children}</div>;
 }
+
+/** 찾을 수 없음 · 권한 없음 · 오류처럼 화면 전체를 대신하는 안내 */
+export function Notice({ title, description, children }: { title: string; description?: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-surface px-6 py-16 text-center">
+      <p className="text-lg font-semibold">{title}</p>
+      {description && <p className="text-sm text-muted">{description}</p>}
+      {children}
+    </div>
+  );
+}
