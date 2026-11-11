@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -40,10 +41,12 @@ public class BroadcastLiveService {
 	private final TransactionTemplate tx;
 	private final TaskScheduler scheduler;
 	private final Duration broadcasterGrace;
+	private final ApplicationEventPublisher events;
 
 	public BroadcastLiveService(BroadcastService broadcastService, BroadcastRepository broadcastRepository,
 			LiveKitRoomClient roomClient, LiveKitTokenIssuer tokenIssuer, TransactionTemplate tx,
-			@Qualifier("liveTaskScheduler") TaskScheduler scheduler, AppProperties properties) {
+			@Qualifier("liveTaskScheduler") TaskScheduler scheduler, AppProperties properties,
+			ApplicationEventPublisher events) {
 		this.broadcastService = broadcastService;
 		this.broadcastRepository = broadcastRepository;
 		this.roomClient = roomClient;
@@ -51,6 +54,7 @@ public class BroadcastLiveService {
 		this.tx = tx;
 		this.scheduler = scheduler;
 		this.broadcasterGrace = properties.livekit().broadcasterGrace();
+		this.events = events;
 	}
 
 	/** 소유자만. READY → LIVE로 바꾸고 송출 토큰을 준다. */
@@ -75,7 +79,7 @@ public class BroadcastLiveService {
 	public LiveAccessResponse publisherToken(LoginUser user, Long broadcastId) {
 		BroadcastResponse broadcast = tx.execute(status -> {
 			Broadcast owned = broadcastService.findOwned(user.id(), broadcastId);
-			requireLive(owned);
+			owned.checkLive();
 			return BroadcastResponse.from(owned);
 		});
 		return publisherAccess(user, RoomNames.of(broadcastId), broadcast);
@@ -86,7 +90,7 @@ public class BroadcastLiveService {
 		BroadcastResponse broadcast = tx.execute(status -> {
 			Broadcast found = broadcastRepository.findWithOwnerById(broadcastId)
 					.orElseThrow(() -> new BusinessException(ErrorCode.BROADCAST_NOT_FOUND));
-			requireLive(found);
+			found.checkLive();
 			return BroadcastResponse.from(found);
 		});
 		String identity = "viewer-" + UUID.randomUUID();
@@ -101,7 +105,7 @@ public class BroadcastLiveService {
 		BroadcastResponse ended = tx.execute(status -> {
 			Broadcast broadcast = lockOwned(user.id(), broadcastId);
 			if (broadcast.getStatus() != BroadcastStatus.ENDED) {
-				broadcast.end();
+				endLocked(broadcast);
 			}
 			return BroadcastResponse.from(broadcast);
 		});
@@ -147,7 +151,7 @@ public class BroadcastLiveService {
 		Boolean ended = tx.execute(status -> broadcastRepository.findForUpdateById(broadcastId)
 				.filter(b -> b.getStatus() == BroadcastStatus.LIVE)
 				.map(b -> {
-					b.end();
+					endLocked(b);
 					return true;
 				})
 				.orElse(false));
@@ -155,6 +159,12 @@ public class BroadcastLiveService {
 			log.info("방송 자동 종료: broadcast={}, 이유={}", broadcastId, reason);
 		}
 		return Boolean.TRUE.equals(ended);
+	}
+
+	/** 종료는 모두 여기를 지난다(소유자 종료 · 웹훅). 잠근 행에서 호출해야 하고, 커밋 뒤 구독자에게 알려진다. */
+	private void endLocked(Broadcast broadcast) {
+		broadcast.end();
+		events.publishEvent(new BroadcastEndedEvent(broadcast.getId()));
 	}
 
 	private Broadcast lockOwned(Long userId, Long broadcastId) {
@@ -178,13 +188,6 @@ public class BroadcastLiveService {
 			case ENDED -> throw new BusinessException(ErrorCode.BROADCAST_ENDED);
 			case READY -> {
 			}
-		}
-	}
-
-	private static void requireLive(Broadcast broadcast) {
-		if (broadcast.getStatus() != BroadcastStatus.LIVE) {
-			throw new BusinessException(broadcast.getStatus() == BroadcastStatus.ENDED
-					? ErrorCode.BROADCAST_ENDED : ErrorCode.BROADCAST_NOT_LIVE);
 		}
 	}
 

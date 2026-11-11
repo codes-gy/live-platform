@@ -2,6 +2,7 @@ package com.gy.live.global.error;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -51,7 +52,9 @@ public class GlobalExceptionHandler {
 		return respond(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.message());
 	}
 
+	/** 형식을 JSON으로 못 박는다. 그래야 SSE 요청(Accept: text/event-stream)의 오류도 406 대신 원래 상태로 나간다. */
 	private ResponseEntity<ErrorResponse> respond(ErrorCode code, String message) {
-		return ResponseEntity.status(code.status()).body(ErrorResponse.of(code, message));
+		return ResponseEntity.status(code.status()).contentType(MediaType.APPLICATION_JSON)
+				.body(ErrorResponse.of(code, message));
 	}
 }
