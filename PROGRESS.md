@@ -125,7 +125,17 @@
   - 못 한 것: **실제 휴대폰**(iOS Safari · Android Chrome) 송출 · 후면 카메라 · 앱 전환 복구 · Wake Lock — HTTPS 필요 → 배포(#9) 후 또는 터널로 사용자 확인
   - 알려진 점: 시청 플레이어는 16:9라 세로 카메라는 좌우 여백(letterbox). 카메라 모드에 "카메라 끄기" 버튼 없음(모드 전환 · 화면 이탈로 해제). 재획득 실패로 음소거된 경우 방송자 화면에 별도 안내 없음
 
+- [x] (11-12) PR #24(#7) · PR #25(#8 + 문서) develop 머지, 이슈 #8 닫힘
+- [x] (11-12) #11 댓글 프론트: 브랜치 `feature/comment/#11-comment-ui`(하위 세션 구현 · 메인 세션 검토 · E2E)
+  - `lib/comments.ts`(타입 · id 키 리듀서 · `fetchComments` · `formatCommentTime`), `components/comment/`(`useComments` 목록 + SSE, `CommentPanel` 자동 스크롤 · "새 댓글" 버튼 · 이전 댓글 더 보기, `CommentComposer` Enter 전송 · Shift+Enter 줄바꿈 · IME 조합 중 무시 · 500자, `CommentItem` 인라인 수정 · 삭제 확인 · 방송자 배지 · (수정됨))
+  - 상세 화면: lg 이상 2단(왼쪽 플레이어 · 정보, 오른쪽 댓글), 모바일은 아래. 컨테이너 `max-w-6xl`
+  - 상태별: LIVE 작성 가능(비로그인은 로그인 링크), READY 안내, ENDED 읽기 전용. 수정 · 삭제는 서버가 상태와 무관하게 허용하므로 화면도 허용
+  - **`next.config.ts` `compress: false`**: Next 기본 gzip이 SSE를 모아 둬서 실시간 수신이 멈춤(하위 세션이 가짜 SSE 서버로 재현). 배포 시 압축은 호스팅/프록시가 맡음
+  - 확인: lint · build. **Playwright E2E 22개 통과**(scratchpad `e2e/comments.mjs`, 실제 Spring + Next rewrite): READY 안내, 비로그인 로그인 링크, 작성 → 비로그인 화면에 SSE로 250ms 도착, 내 댓글 중복 없음, 방송자 배지, 권한별 버튼(비로그인 없음 · 작성자 수정/삭제 · 방송 소유자는 남의 댓글 삭제만), 남의 댓글 수정 API 403, 수정 실시간 반영 (수정됨), 소유자 삭제 실시간 제거, 새로고침 후 유지, 종료 → 읽기 전용, 375px 가로 넘침 0
+  - 못 한 것: 실제 한글 IME 입력, 네트워크 끊김 후 재연결 보충, 이전 댓글 불러올 때 스크롤 위치
+
 ## 현재 상태
+- (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
 - (11-12) #8 모바일 송출 구현 · E2E 통과(로컬 브랜치, push 전). 필수 기능 코드는 모두 구현됨 — 남은 필수는 배포(#9) · README(#14) · 시연 영상 · 실기기 확인
 - (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → E2E는 `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
 - (11-12) `docs/ARCHITECTURE.md` · `docs/DESIGN.md` 작성(Mermaid 13개, mermaid-cli 11.4.2로 렌더링 확인). 미구현 부분(모바일 #8 · 배포 #9 · 도네이션 #12 · 녹화 #13 · 댓글 UI)은 **(예정)** 설계로 기재 — 구현 시 이 설계를 출발점으로 쓴다. 문서 3개 모두 아직 커밋 안 함(#7 브랜치 작업 트리)
@@ -140,11 +150,10 @@
 - E2E 실행 방법: Postgres(5432) + 백엔드(8080, LiveKit Cloud env) + `next start -p 3100` 후 `node pc-broadcast.mjs`
 
 ## 다음 작업 (순서대로)
-1. **사용자 승인 후**: PR #24(#7) 머지 → `feature/live/#8-mobile-broadcast` push · PR(base develop) · CI · 머지. 문서 3개(`docs/`) + PROGRESS는 별도 `chore/docs/…` PR 또는 #8 PR에 포함
-2. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오 확인
-3. **댓글 프론트(#11 후속)**: 시청 화면 옆 댓글 패널(목록 + SSE + 작성, 재연결 시 첫 페이지 다시 받아 합치기), SSE가 Next rewrite에서 버퍼링되는지 확인
-4. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료)
-5. 시간이 남으면 #12 도네이션(토스 테스트 키 필요) · #13 녹화
+1. 댓글 UI PR CI 확인 · 머지
+2. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
+3. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료)
+4. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
 
 ## 사용자 확인 필요
 - (11-05, 11-11 설치 확인됨) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
