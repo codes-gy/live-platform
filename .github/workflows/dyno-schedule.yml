@@ -1,0 +1,40 @@
+name: Heroku 운영 시간
+
+# 비용을 줄이려고 오전 9시 ~ 오후 8시(KST)에만 서버(다이노)를 켠다. DB는 항상 켜져 있다.
+# GitHub 예약 실행은 기본 브랜치에서만 돌고, 몇 분 늦게 시작될 수 있다.
+on:
+  schedule:
+    - cron: "0 0 * * *" # 09:00 KST 켜기
+    - cron: "0 11 * * *" # 20:00 KST 끄기
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "켜기(on) 또는 끄기(off)"
+        type: choice
+        options: [on, off]
+        default: "on"
+
+permissions: {}
+
+jobs:
+  scale:
+    runs-on: ubuntu-latest
+    env:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+    steps:
+      - name: 켤지 끌지 정하기
+        id: plan
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then action="${{ inputs.action }}";
+          elif [ "${{ github.event.schedule }}" = "0 0 * * *" ]; then action=on; else action=off; fi
+          echo "quantity=$([ "$action" = on ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
+      - name: 다이노 수 바꾸기
+        run: |
+          for app in onair-live-api onair-live-web; do
+            curl -sSf -X PATCH "https://api.heroku.com/apps/$app/formation/web" \
+              -H "Authorization: Bearer $HEROKU_API_KEY" \
+              -H "Accept: application/vnd.heroku+json; version=3" \
+              -H "Content-Type: application/json" \
+              -d '{"quantity": ${{ steps.plan.outputs.quantity }}, "size": "basic"}' > /dev/null
+            echo "$app web=${{ steps.plan.outputs.quantity }}"
+          done
