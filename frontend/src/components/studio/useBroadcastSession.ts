@@ -13,8 +13,8 @@ import { captureCamera, captureMic, captureScreen, NO_CAPTURE, stopCapture, stop
 export type StudioPhase =
   | { kind: "setup"; broadcast: Broadcast }
   | { kind: "connecting"; broadcast: Broadcast }
-  | { kind: "live"; broadcast: Broadcast; access: LiveAccess }
-  | { kind: "ending"; broadcast: Broadcast; access: LiveAccess }
+  | { kind: "live"; broadcast: Broadcast; access: LiveAccess; room: Room }
+  | { kind: "ending"; broadcast: Broadcast; access: LiveAccess; room: Room }
   | { kind: "ended"; broadcast: Broadcast };
 
 const MESSAGES: Record<string, string> = {
@@ -255,19 +255,19 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
       return;
     }
     if (epoch !== epochRef.current) return;
-    setPhase({ kind: "live", broadcast: access.broadcast, access });
+    setPhase({ kind: "live", broadcast: access.broadcast, access, room });
   };
 
   const end = async () => {
     if (phase.kind !== "live") return;
-    const { broadcast, access } = phase;
-    setPhase({ kind: "ending", broadcast, access });
+    const { broadcast, access, room } = phase;
+    setPhase({ kind: "ending", broadcast, access, room });
     try {
       await api(`/api/broadcasts/${broadcast.id}/end`, { method: "POST" });
     } catch (e) {
       // 서버가 방을 먼저 닫아 Disconnected 처리가 끝난 경우엔 그 결과를 따른다
       if (!roomRef.current) return;
-      setPhase({ kind: "live", broadcast, access });
+      setPhase({ kind: "live", broadcast, access, room });
       setMessage(describe(e, "방송을 종료하지 못했습니다. 다시 시도해 주세요."));
       return;
     }

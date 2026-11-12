@@ -13,7 +13,7 @@
   --color-ok: #3ccf91;
   --color-danger: #ff6b6b;
 
-  --font-sans: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+  --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
     "Malgun Gothic", system-ui, sans-serif;
 }
 
@@ -26,6 +26,15 @@ body {
   color: var(--color-fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  /* 한글은 단어(어절) 단위로 줄을 바꾸고, 띄어쓰기 없는 긴 문자열만 어디서든 자른다 */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 :focus-visible {

@@ -17,6 +17,13 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className="h-full">
+      {/* Pretendard(OFL): 쓰인 글자 구간만 내려받는 동적 서브셋 */}
+      <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        precedence="default"
+        crossOrigin="anonymous"
+      />
       <body className="flex min-h-full flex-col">
         <AuthProvider>
           <Header />

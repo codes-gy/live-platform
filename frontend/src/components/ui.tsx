@@ -25,7 +25,7 @@ export function Field({
 export function PrimaryButton({ className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
-      className={`h-11 rounded-lg bg-live px-4 font-semibold text-white transition-colors hover:bg-live-strong disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`h-11 rounded-lg bg-live px-4 font-semibold text-white transition-colors hover:bg-live-strong disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted ${className}`}
       {...props}
     />
   );

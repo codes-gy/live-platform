@@ -66,7 +66,7 @@ export function CommentPanel({ broadcast, onEnded }: { broadcast: Broadcast; onE
   const anchorIso = broadcast.startedAt ?? broadcast.createdAt;
 
   return (
-    <section aria-label="댓글" className="relative h-[32rem] lg:h-auto lg:min-h-[24rem]">
+    <section aria-label="댓글" className="relative h-[24rem] sm:h-[28rem] lg:h-auto lg:min-h-[24rem]">
       <div className="absolute inset-0 flex flex-col overflow-hidden rounded-xl border border-line bg-surface">
         <h2 className="shrink-0 border-b border-line px-4 py-3 text-sm font-semibold">댓글</h2>
 

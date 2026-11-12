@@ -149,7 +149,7 @@ DB 마이그레이션: `resources/db/migration/V1__create_users.sql` · `V2__cre
 src/
 ├── proxy.ts                       (Next 16의 middleware) 보호 경로에 쿠키 없으면 /login?next=
 ├── app/                           라우트
-│   ├── layout.tsx                 AuthProvider · Header
+│   ├── layout.tsx                 AuthProvider · Header · Pretendard 글꼴(CDN)
 │   ├── page.tsx                   / 방송 목록
 │   ├── login/ · signup/           로그인 · 회원가입
 │   ├── my/                        내 계정 · 내 방송 목록                        [로그인]
@@ -161,8 +161,9 @@ src/
 │   ├── auth/       AuthProvider(useAuth) · RequireAuth · LoginForm · SignupForm
 │   ├── broadcast/  BroadcastList · BroadcastCard · BroadcastDetail · LivePlayer · BroadcastForm
 │   │               CreateBroadcast · EditBroadcast · DeleteBroadcast · MyBroadcasts · OwnerActions · StatusBadge
+│   │               OwnerAvatar · useViewerCount(시청자 수)
 │   ├── comment/    CommentPanel · CommentComposer · CommentItem · useComments(목록 리듀서 + SSE)
-│   ├── studio/     Studio(UI) · useBroadcastSession(연결 상태 머신) · media(화면 · 카메라 · 마이크 캡처) · useWakeLock
+│   ├── studio/     Studio(UI · 댓글 패널 · 마이크 음량) · useBroadcastSession(연결 상태 머신) · media(화면 · 카메라 · 마이크 캡처) · useWakeLock
 │   └── Header · Logo · ui
 └── lib/
     ├── api.ts          fetch 래퍼 api<T>(), ApiError{status, code, message}

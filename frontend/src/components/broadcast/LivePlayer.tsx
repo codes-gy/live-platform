@@ -5,6 +5,7 @@ import {
   RoomAudioRenderer,
   StartAudio,
   useConnectionState,
+  useRoomContext,
   useTracks,
   VideoTrack,
 } from "@livekit/components-react";
@@ -12,6 +13,7 @@ import { ConnectionState, DisconnectReason, Track } from "livekit-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { LiveAccess } from "@/lib/broadcast";
+import { useViewerCount, ViewerCount } from "./useViewerCount";
 
 type Props = {
   broadcastId: number;
@@ -108,6 +110,7 @@ export function LivePlayer({ broadcastId, onEnded }: Props) {
 function Stage() {
   const frameRef = useRef<HTMLDivElement>(null);
   const connection = useConnectionState();
+  const viewers = useViewerCount(useRoomContext());
   const [muted, setMuted] = useState(false);
   const videos = useTracks([Track.Source.ScreenShare, Track.Source.Camera], { onlySubscribed: true });
   const main = videos.find((t) => t.source === Track.Source.ScreenShare) ?? videos[0];
@@ -135,10 +138,13 @@ function Stage() {
       )}
 
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/70 to-transparent p-3">
-        <span className="inline-flex items-center gap-1.5 rounded bg-live px-1.5 py-0.5 text-xs font-bold text-white">
-          <span className="h-1.5 w-1.5 rounded-full bg-white motion-safe:animate-pulse" aria-hidden />
-          LIVE
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded bg-live px-1.5 py-0.5 text-xs font-bold text-white">
+            <span className="h-1.5 w-1.5 rounded-full bg-white motion-safe:animate-pulse" aria-hidden />
+            LIVE
+          </span>
+          <ViewerCount count={viewers} className="rounded bg-black/50 px-1.5 py-0.5 text-xs font-medium text-white" />
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"

@@ -7,6 +7,7 @@ import { CommentPanel } from "../comment/CommentPanel";
 import { Notice } from "../ui";
 import { LivePlayer } from "./LivePlayer";
 import { OwnerActions } from "./OwnerActions";
+import { OwnerAvatar } from "./OwnerAvatar";
 import { StatusBadge } from "./StatusBadge";
 
 /** 방송 전이면 시작했는지 이 간격으로 확인해, 시작되면 바로 시청 화면으로 바꾼다. */
@@ -117,10 +118,13 @@ export function BroadcastDetail({ id }: { id: number }) {
 function OfflineScreen({ broadcast }: { broadcast: Broadcast }) {
   const ended = broadcast.status === "ENDED";
   return (
-    <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border border-line bg-surface p-6 text-center" role="status">
+    <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border border-line bg-surface p-6 text-center" role="status">
+      <OwnerAvatar nickname={broadcast.owner.nickname} />
       <p className="text-lg font-semibold">{ended ? "방송이 종료되었습니다" : "아직 방송 전입니다"}</p>
       <p className="text-sm text-muted">
-        {ended ? `${formatDuration(broadcast.startedAt, broadcast.endedAt)} 동안 방송했습니다.` : "방송이 시작되면 이 화면에서 바로 이어서 볼 수 있습니다."}
+        {ended
+          ? `${broadcast.owner.nickname}님이 ${formatDuration(broadcast.startedAt, broadcast.endedAt)} 동안 방송했습니다.`
+          : "방송이 시작되면 이 화면에서 바로 이어서 볼 수 있습니다."}
       </p>
     </div>
   );

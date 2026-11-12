@@ -86,7 +86,7 @@ export function CommentItem({ comment, broadcastId, anchorIso, isAuthor, isBroad
               </button>
               <button
                 type="button"
-                className="rounded bg-live px-2 py-0.5 text-xs font-semibold text-white hover:bg-live-strong disabled:opacity-60"
+                className="rounded bg-live px-2 py-0.5 text-xs font-semibold text-white hover:bg-live-strong disabled:bg-surface-2 disabled:text-muted"
                 disabled={busy || mode.text.trim().length === 0}
                 onClick={() => save(mode.text)}
               >
