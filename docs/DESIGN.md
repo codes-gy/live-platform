@@ -267,6 +267,13 @@ stateDiagram-v2
 - 연결 · 방송 · 종료 중에는 Screen Wake Lock으로 화면 꺼짐을 막고, 탭이 다시 보이면 다시 요청한다(`useWakeLock`).
 - 서버 변경 없음 — 송출 토큰에 camera · microphone 권한이 있고, 시청 화면은 ScreenShare 다음으로 Camera 트랙을 고른다.
 
+### 6.2 방송자 · 시청자 화면 보조 정보 (#28)
+
+- **시청자 수**: 시청자는 hidden 참가자라 참가자 목록에는 안 보이지만, LiveKit이 보내는 방 정보 `room.numParticipants`에는 포함된다(로컬 LiveKit으로 방송자 1 + 시청자 2 → 3 확인). 시청자 수 = `numParticipants - 1`(방송자). 바뀔 때 이벤트가 없어 3초마다 읽는다(`useViewerCount`). 서버 변경 없음.
+- **스튜디오 댓글**: 상세 화면과 같은 `CommentPanel`을 스튜디오 오른쪽(좁은 화면은 아래)에 둔다. 방송자는 방송 중 댓글을 보고 남의 댓글을 삭제할 수 있다. 방송 종료는 스튜디오가 룸 연결로 먼저 알기 때문에 패널의 종료 알림은 쓰지 않는다.
+- **마이크 음량 막대**: 마이크 트랙을 WebAudio `AnalyserNode`에 연결해 매 프레임 최댓값을 막대 길이로 그린다. 리렌더를 피하려고 state 대신 요소의 transform을 직접 바꾼다.
+- **글꼴 · 줄바꿈**: Pretendard(OFL-1.1) 가변 글꼴을 jsDelivr의 동적 서브셋 CSS로 불러온다(쓴 글자 구간만 받음). 본문은 `word-break: keep-all`로 어절 단위로 줄을 바꾼다.
+
 ## 7. 선택 기능 설계 (예정)
 
 ### 7.1 도네이션 (#12, 토스페이먼츠 테스트 모드)
@@ -319,3 +326,4 @@ sequenceDiagram
 - `start` 요청 중 화면을 떠나면 서버는 LIVE인데 방송자가 없을 수 있다 → `emptyTimeout`(2분) 뒤 `room_finished`로 ENDED.
 - 댓글 레이트 리밋 없음.
 - 시스템 소리는 브라우저 · OS 제약(Windows Chrome/Edge만)을 따른다.
+- 시청자 수는 LiveKit 방 정보 갱신 주기와 3초 폴링 때문에 몇 초 늦게 바뀐다. 목록 카드에는 없다(서버가 방마다 참가자 수를 물어야 함).

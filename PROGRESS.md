@@ -134,24 +134,32 @@
   - 확인: lint · build. **Playwright E2E 22개 통과**(scratchpad `e2e/comments.mjs`, 실제 Spring + Next rewrite): READY 안내, 비로그인 로그인 링크, 작성 → 비로그인 화면에 SSE로 250ms 도착, 내 댓글 중복 없음, 방송자 배지, 권한별 버튼(비로그인 없음 · 작성자 수정/삭제 · 방송 소유자는 남의 댓글 삭제만), 남의 댓글 수정 API 403, 수정 실시간 반영 (수정됨), 소유자 삭제 실시간 제거, 새로고침 후 유지, 종료 → 읽기 전용, 375px 가로 넘침 0
   - 못 한 것: 실제 한글 IME 입력, 네트워크 끊김 후 재연결 보충, 이전 댓글 불러올 때 스크롤 위치
 
+- [x] (11-12) #28 화면 다듬기(디자이너 관점 검토 반영): 브랜치 `feature/ui/#28-ui-polish`, PR 생성 · **머지 대기**
+  - 검토: PC 1440px · 휴대폰 390px로 전 화면 스크린샷(scratchpad `e2e/review.mjs`) → 문제 목록을 사용자에게 보고 후 "개선해줘"로 진행
+  - 글꼴: CSS에 이름만 있던 Pretendard를 실제 로드(`layout.tsx`의 `<link precedence>`, jsDelivr 동적 서브셋 v1.3.9, OFL-1.1 → README 출처 표기 필요). 본문 `word-break: keep-all` · 제목 `text-wrap: balance`
+  - 목록 카드: 썸네일 안 제목 중복 제거 → 방송자 이니셜(`OwnerAvatar`) + "N분째 방송 중"/"방금 시작"/"N분 방송"/"방송 예정". 아래 줄은 닉네임(+ 종료 · 등록 시각)
+  - `formatDuration` 1분 미만은 "1분 미만". 종료 화면 "○○님이 1분 미만 동안 방송했습니다" + 이니셜
+  - 스튜디오: 화면 모양 스켈레톤(`RequireAuth fallback`), **댓글 패널**(lg 2단, 방송자가 실시간 확인 · 삭제), **마이크 음량 막대**(WebAudio AnalyserNode, transform 직접 갱신), 시작 비활성 이유 안내, 안내 화면은 좁게(`Narrow`)
+  - **시청자 수**: hidden 시청자도 `room.numParticipants`에 포함됨을 로컬 LiveKit으로 확인(방송자 1 + 시청자 2 → 3) → `numParticipants - 1`을 3초마다 읽음(`useViewerCount`). 상세 플레이어 LIVE 옆 · 스튜디오 제목 옆. 서버 변경 없음. 스튜디오 phase(live · ending)에 `room` 추가
+  - 비활성 버튼(PrimaryButton · 댓글 등록 · 수정 저장)을 흐린 빨강 → 회색. 휴대폰 댓글 패널 높이 32rem → 24rem(sm 28rem)
+  - 확인: lint · tsc · build 통과. 회귀 E2E 댓글 22개 · 송출 34개 통과. 새 E2E 15개 통과(scratchpad `e2e/ui-polish.mjs`): 글꼴 로드 · keep-all, 시작 비활성 안내, 스튜디오 댓글 패널, 음량 막대 움직임, 시청자 수 스튜디오 · 플레이어 2명 → 1명 나가면 1명, 시청자 댓글이 스튜디오에 실시간 도착 · 방송자 삭제 → 시청자 화면에서 제거, 카드 제목 1회 · 캡션, 종료 "1분 미만", 휴대폰 가로 넘침 0. E2E가 카드 시간 중복("방금 시작" 2번)을 잡아 수정
+  - 문서: `DESIGN.md` 6.2 · 9절, `ARCHITECTURE.md` 프론트 트리, `REQUIREMENTS.md` #28 출처
+
 ## 현재 상태
-- (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
-- (11-12) #8 모바일 송출 구현 · E2E 통과(로컬 브랜치, push 전). 필수 기능 코드는 모두 구현됨 — 남은 필수는 배포(#9) · README(#14) · 시연 영상 · 실기기 확인
-- (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → E2E는 `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
-- (11-12) `docs/ARCHITECTURE.md` · `docs/DESIGN.md` 작성(Mermaid 13개, mermaid-cli 11.4.2로 렌더링 확인). 미구현 부분(모바일 #8 · 배포 #9 · 도네이션 #12 · 녹화 #13 · 댓글 UI)은 **(예정)** 설계로 기재 — 구현 시 이 설계를 출발점으로 쓴다. 문서 3개 모두 아직 커밋 안 함(#7 브랜치 작업 트리)
-- (11-12) 요구사항 원문을 `docs/REQUIREMENTS.md`로 정리하고 항목별 상태를 매김: 필수 14개 중 완료 7 · 부분 4 · 미착수 3(모바일), 선택 8개 중 완료 1 · 부분 1(댓글 UI) · 미착수 6, 제출 요건(배포 URL · README · 시연 영상) 모두 남음. **마감 D-7**
-- (11-12) 이번 세션은 macOS(`/Users/podojjang/project/live-platform`)에서 진행. 로컬 체크아웃이 #5 브랜치에 머물러 있어 `feature/live/#7-pc-broadcast`로 전환함
-- 필수: 백엔드 전부 + 프론트 인증 · 목록 · 상세 · 시청 · 등록 · 수정 · 삭제 완료(PR #20 · #21 · #22 머지, 11-11). 남은 필수는 #8 모바일 송출, #9 배포, #14 README
-- #7 PC 송출 완료(PR #24 머지, 11-12)
-- 선택: 댓글 백엔드 완료(#11), 프론트 댓글 UI 미구현
-- 작업 방식(11-11): 메인 세션이 하위 세션(pstack:poteto-agent, worktree 격리)에 백엔드 · 프론트를 나눠 맡기고, 결과를 모아 사용자 승인 후 push · PR · 머지. 하위 세션은 로컬 커밋까지만, PROGRESS.md는 메인 세션만 수정
-- 대시보드: #1~#6 · #10 · #11 완료로 갱신 필요(이번에 미갱신)
-- 로컬 환경(11-12): 개발 PC가 **WSL2**로 바뀜(`/mnt/a/project/live-platform`). Java 25는 `/usr/lib/jvm/java-25-openjdk-amd64`(기본 java는 21 → bootRun 시 `JAVA_HOME` 지정). Docker Desktop은 WSL integration을 켜야 `docker` 사용 가능. 루트 `.env`에 LiveKit Cloud 키 입력됨(ListRooms 200으로 확인) — 백엔드는 `.env`를 자동으로 안 읽으므로 `set -a; . ../.env; set +a` 후 bootRun
-- E2E 실행 방법: Postgres(5432) + 백엔드(8080, LiveKit Cloud env) + `next start -p 3100` 후 `node pc-broadcast.mjs`
+- (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 PR 머지 대기. 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
+- (11-12) 비용: 사용자가 LiveKit 비용을 문의 → Cloud 무료 Build 플랜(카드 불필요, 월 참가자 5,000분 · 내려받기 50GB · 동시 100명 · 녹화 60분, 초과 시 과금 대신 차단, 계정 단위)으로 충분하다고 답함. 코드 변경 없이 유지
+- (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 실행: `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home LIVEKIT_URL=ws://localhost:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret ./gradlew bootRun`. 프론트 `npm run dev`(3000) · E2E는 `next start -p 3100`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
+- (11-12) 로컬 DB에 11-05의 "CLI 송출 시험"(id 2)이 LIVE로 남아 있음(로컬은 웹훅 미연결이라 종료 신호를 못 받음). 운영에서도 웹훅 유실 시 같은 일이 생길 수 있어 정리 작업을 다음 작업에 넣음
+- (11-12) 문서: `docs/REQUIREMENTS.md`(요구사항 · 상태) · `docs/ARCHITECTURE.md` · `docs/DESIGN.md`. 미구현 부분(배포 #9 · 도네이션 #12 · 녹화 #13)은 **(예정)** 설계
+- 작업 방식(11-11): 메인 세션이 하위 세션(pstack:poteto-agent, worktree 격리)에 나눠 맡기고, 결과를 모아 사용자 승인 후 push · PR · 머지. 하위 세션은 로컬 커밋까지만, PROGRESS.md는 메인 세션만 수정
+- 대시보드: #1~#8 · #10 · #11 완료로 갱신 필요(미갱신)
+- 다른 개발 PC(WSL2, `/mnt/a/project/live-platform`): Java 25 `/usr/lib/jvm/java-25-openjdk-amd64`, 루트 `.env`에 LiveKit Cloud 키 있음 — `set -a; . ../.env; set +a` 후 bootRun
+- E2E: scratchpad `e2e/`(저장소 밖) — `pc-broadcast.mjs` · `mobile-broadcast.mjs` · `comments.mjs` · `ui-polish.mjs` · `review.mjs`(스크린샷). Postgres + 백엔드(8080) + `next start -p 3100` 후 `node <파일>`
 
 ## 다음 작업 (순서대로)
 1. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
-2. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료)
+2. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료). 출처에 LiveKit · Pretendard(OFL-1.1) 포함
+2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조, **LIVE로 남은 방송 정리**(주기적으로 LiveKit에 방 · 방송자 존재 확인 → 없으면 ENDED, 웹훅 유실 대비 · 상태 관리 평가 항목)
 3. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
 
 ## 사용자 확인 필요

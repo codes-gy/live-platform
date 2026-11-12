@@ -89,7 +89,7 @@ export function CommentComposer({ broadcast, onSent, onEnded }: Props) {
         <button
           type="submit"
           disabled={!canSend}
-          className="h-9 rounded-lg bg-live px-4 text-sm font-semibold text-white transition-colors hover:bg-live-strong disabled:cursor-not-allowed disabled:opacity-60"
+          className="h-9 rounded-lg bg-live px-4 text-sm font-semibold text-white transition-colors hover:bg-live-strong disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-muted"
         >
           {sending ? "등록 중…" : "등록"}
         </button>

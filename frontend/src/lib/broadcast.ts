@@ -87,11 +87,12 @@ export function formatAgo(iso: string | null, now = Date.now()): string {
   return formatDateTime(iso);
 }
 
-/** 방송 시간(시작~종료 또는 지금까지). "1시간 5분" */
+/** 방송 시간(시작~종료 또는 지금까지). "1시간 5분", 1분이 안 되면 "1분 미만" */
 export function formatDuration(fromIso: string | null, toIso: string | null, now = Date.now()): string {
   if (!fromIso) return "";
   const end = toIso ? new Date(toIso).getTime() : now;
   const minutes = Math.max(0, Math.floor((end - new Date(fromIso).getTime()) / 60_000));
+  if (minutes < 1) return "1분 미만";
   const hours = Math.floor(minutes / 60);
   return hours > 0 ? `${hours}시간 ${minutes % 60}분` : `${minutes}분`;
 }
