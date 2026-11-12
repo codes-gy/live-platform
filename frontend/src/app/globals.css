@@ -41,3 +41,29 @@ h3 {
   outline: 2px solid var(--color-live);
   outline-offset: 2px;
 }
+
+/* 로고 토끼: 아래에서 차오르고(방송 켜짐) 다시 비워진다(꺼짐) */
+@keyframes logo-rabbit-fill {
+  0%,
+  15% {
+    transform: translateY(100%);
+  }
+  50%,
+  65% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.logo-rabbit-fill {
+  transform-box: fill-box;
+  animation: logo-rabbit-fill 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-rabbit-fill {
+    animation: none;
+  }
+}
