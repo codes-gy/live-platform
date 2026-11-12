@@ -12,7 +12,7 @@ async function DetailWithParams({ params }: { params: PageProps<"/broadcasts/[id
 
 export default function BroadcastPage({ params }: PageProps<"/broadcasts/[id]">) {
   return (
-    <div className="mx-auto w-full max-w-4xl">
+    <div className="mx-auto w-full max-w-6xl">
       <Suspense fallback={<div className="aspect-video w-full animate-pulse rounded-xl bg-surface-2" />}>
         <DetailWithParams params={params} />
       </Suspense>

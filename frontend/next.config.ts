@@ -9,6 +9,8 @@ const backendUrl = process.env.BACKEND_URL ?? "http://localhost:8080";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // 기본 gzip 압축이 SSE(댓글 스트림)를 모아 두었다가 보내서 실시간 수신이 멈춘다. 압축은 앞단(프록시)이 맡는다.
+  compress: false,
   partialPrefetching: true,
   turbopack: {
     rules: {
