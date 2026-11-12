@@ -83,13 +83,12 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
     video.track.on(TrackEvent.Ended, () => {
       const c = captureRef.current;
       if (c.video?.track !== video.track) return;
-      const local = roomRef.current?.localParticipant;
+      // 방송 중 카메라가 끊기면 LiveKit이 같은 트랙으로 카메라를 다시 잡는다(실패하면 음소거). 직접 내리면 그 복구를 막는다
+      if (video.kind === "camera" && roomRef.current) return;
       if (video.kind === "screen" && video.audio) {
-        void local?.unpublishTrack(video.audio, true);
+        void roomRef.current?.localParticipant.unpublishTrack(video.audio, true);
         video.audio.stop();
       }
-      // 카메라는 LiveKit이 끝난 트랙을 게시한 채 음소거만 하므로 직접 내린다
-      if (video.kind === "camera") void local?.unpublishTrack(video.track, true);
       setCapture({ ...c, video: undefined });
       setMessage(video.kind === "screen" ? "화면 공유가 중단되었습니다. 화면을 다시 선택해 주세요." : "카메라가 중단되었습니다. 카메라를 다시 켜 주세요.");
     });
