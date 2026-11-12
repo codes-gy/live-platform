@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatDateTime, formatDuration, loadBroadcast, type Broadcast, type BroadcastLoad } from "@/lib/broadcast";
+import { CommentPanel } from "../comment/CommentPanel";
 import { Notice } from "../ui";
 import { LivePlayer } from "./LivePlayer";
 import { OwnerActions } from "./OwnerActions";
@@ -64,49 +65,52 @@ export function BroadcastDetail({ id }: { id: number }) {
 
   const b = state.broadcast;
   return (
-    <article className="flex flex-col gap-5">
-      {b.status === "LIVE" ? (
-        // key로 방송이 바뀌면 플레이어를 새로 만든다
-        <LivePlayer key={b.id} broadcastId={b.id} onEnded={load} />
-      ) : (
-        <OfflineScreen broadcast={b} />
-      )}
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <article className="flex min-w-0 flex-col gap-5">
+        {b.status === "LIVE" ? (
+          // key로 방송이 바뀌면 플레이어를 새로 만든다
+          <LivePlayer key={b.id} broadcastId={b.id} onEnded={load} />
+        ) : (
+          <OfflineScreen broadcast={b} />
+        )}
 
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <StatusBadge status={b.status} />
-          <span className="text-sm text-muted">{b.owner.nickname}</span>
-        </div>
-        <h1 className="text-xl font-bold break-words sm:text-2xl">{b.title}</h1>
-        <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-          {b.startedAt && (
-            <div className="flex gap-1">
-              <dt>시작</dt>
-              <dd>{formatDateTime(b.startedAt)}</dd>
-            </div>
-          )}
-          {b.endedAt && (
-            <div className="flex gap-1">
-              <dt>종료</dt>
-              <dd>
-                {formatDateTime(b.endedAt)} ({formatDuration(b.startedAt, b.endedAt)})
-              </dd>
-            </div>
-          )}
-          {!b.startedAt && (
-            <div className="flex gap-1">
-              <dt>등록</dt>
-              <dd>{formatDateTime(b.createdAt)}</dd>
-            </div>
-          )}
-        </dl>
-        <OwnerActions broadcast={b} />
-      </header>
+        <header className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <StatusBadge status={b.status} />
+            <span className="text-sm text-muted">{b.owner.nickname}</span>
+          </div>
+          <h1 className="text-xl font-bold break-words sm:text-2xl">{b.title}</h1>
+          <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+            {b.startedAt && (
+              <div className="flex gap-1">
+                <dt>시작</dt>
+                <dd>{formatDateTime(b.startedAt)}</dd>
+              </div>
+            )}
+            {b.endedAt && (
+              <div className="flex gap-1">
+                <dt>종료</dt>
+                <dd>
+                  {formatDateTime(b.endedAt)} ({formatDuration(b.startedAt, b.endedAt)})
+                </dd>
+              </div>
+            )}
+            {!b.startedAt && (
+              <div className="flex gap-1">
+                <dt>등록</dt>
+                <dd>{formatDateTime(b.createdAt)}</dd>
+              </div>
+            )}
+          </dl>
+          <OwnerActions broadcast={b} />
+        </header>
 
-      {b.description && (
-        <p className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed">{b.description}</p>
-      )}
-    </article>
+        {b.description && (
+          <p className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed">{b.description}</p>
+        )}
+      </article>
+      <CommentPanel key={b.id} broadcast={b} onEnded={load} />
+    </div>
   );
 }
 

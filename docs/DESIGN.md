@@ -232,7 +232,9 @@ sequenceDiagram
 - 작성 시 방송 행을 `FOR SHARE`로 잠가, 종료 커밋 뒤에 댓글이 생기지 않게 한다.
 - 이벤트는 `@TransactionalEventListener(AFTER_COMMIT)`로 커밋된 것만 SSE로 보낸다. 구독 목록은 메모리(`CommentStreams`), 30분 타임아웃, 20초 `:ping`, `retry: 3000`, `X-Accel-Buffering: no`.
 - 종료 시 `ended` 이벤트를 보내고 스트림을 닫는다. 이미 종료된 방송을 구독하면 즉시 `ended`.
-- 프론트 댓글 UI **(예정)**: 첫 페이지 조회 + SSE 구독, 재연결 시 첫 페이지를 다시 받아 id로 합친다.
+- 프론트(`components/comment/`, `lib/comments.ts`): 상태는 **id를 키로 한 리듀서**(`first-page` · `older-page` · `upsert` · `edited` · `remove`). 내 POST 응답과 SSE로 돌아온 같은 댓글이 id로 합쳐져 한 번만 보인다. 표시는 id 오름차순(채팅 순서), 위쪽 "이전 댓글 더 보기"는 `before` 커서.
+- SSE는 LIVE일 때만 연결. 끊겼다 다시 붙으면 첫 페이지를 다시 받아 그 범위는 서버 스냅샷으로 교체(놓친 삭제 반영), 그보다 새 항목은 유지. `ended` 이벤트 → 연결 닫고 상세를 다시 불러 종료 화면으로.
+- Next.js 기본 gzip 압축이 `text/event-stream`을 모아 두어 실시간 수신이 멈추므로 `next.config.ts`에 `compress: false`(압축은 앞단 프록시 · 호스팅이 맡음). E2E에서 rewrite 경유 수신 지연 약 250ms 확인.
 
 ## 6. 송출 스튜디오 클라이언트 설계
 

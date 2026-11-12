@@ -161,11 +161,13 @@ src/
 │   ├── auth/       AuthProvider(useAuth) · RequireAuth · LoginForm · SignupForm
 │   ├── broadcast/  BroadcastList · BroadcastCard · BroadcastDetail · LivePlayer · BroadcastForm
 │   │               CreateBroadcast · EditBroadcast · DeleteBroadcast · MyBroadcasts · OwnerActions · StatusBadge
+│   ├── comment/    CommentPanel · CommentComposer · CommentItem · useComments(목록 리듀서 + SSE)
 │   ├── studio/     Studio(UI) · useBroadcastSession(연결 상태 머신) · media(화면 · 카메라 · 마이크 캡처) · useWakeLock
 │   └── Header · Logo · ui
 └── lib/
     ├── api.ts          fetch 래퍼 api<T>(), ApiError{status, code, message}
     ├── broadcast.ts    타입 · 상태 라벨 · 시간 포맷 · loadBroadcast
+    ├── comments.ts     댓글 타입 · 리듀서 · 조회
     └── navigation.ts   safeNext(오픈 리다이렉트 방지) · loginPath
 ```
 
