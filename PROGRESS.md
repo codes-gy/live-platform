@@ -157,6 +157,9 @@
   - 이름 후보를 여러 번 제안 · 겹침 검색(Cue는 해외 방송 서비스와 겹침, Tally는 설문 폼 서비스) 후 사용자가 "핏"으로 결정. 로고 · 탭 제목(`%s · 핏`) · README · 문서 제목 변경. Heroku 앱 이름(onair-live-*)은 유지
   - 파비콘: `app/favicon.ico` 삭제 → `app/icon.svg`(흰 토끼 + 분홍 귀 · 볼 + 오른쪽 위 빨간 LIVE 점). 배포 HTML에 `<link rel="icon" href="/icon.svg…">` 확인
   - 도메인: `heroku domains:add pit-live.kro.kr -a onair-live-web` → DNS 대상 `adjacent-rook-ze64mynua57li9kw25hozhw3.herokudns.com`(CNAME), ACM(자동 인증서) 켬. **사용자가 내도메인.한국에서 CNAME 등록 필요**(11-12 기준 아직 해석 안 됨). 백엔드 CORS에 새 주소 추가
+  - 로고: 깜빡이는 빨간 점 → 토끼 실루엣이 아래에서 빨갛게 차올랐다 비워지는 애니메이션(`Logo.tsx` clipPath + `logo-rabbit-fill` keyframes, 동작 줄이기 설정이면 멈춤). clipPath 안에 `<g>`를 넣으면 잘라내기 영역이 비어 채움이 안 보였음 → 도형을 직접 넣음
+  - **밝은 테마**(사용자 "왜 화면이 어둡지?"): 색 토큰만 바꿔 전 화면 전환(바탕 #f5f6f8 · 카드 흰색 · 글자 #15171c, 영상 자리만 검정), 메인 소개 카드(특징 칩 · 방송 시작하기 · 둘러보기), 카드 그림자 · 호버, 푸터. 배포 서버 반영
+  - 이름 "핏"은 사용자가 다시 고민 중(11-12) → 실제 서비스 이름 참고 목록 전달. 바뀌면 `layout.tsx` · `Logo.tsx` · `Footer.tsx` · README · 문서 제목 수정
   - 백엔드용 `api.pit-live.kro.kr`은 필수 아님: 브라우저는 프론트의 `/api`만 부르고, 백엔드 주소가 필요한 곳은 LiveKit 웹훅뿐(herokuapp 주소로 충분)
 
 ## 현재 상태
