@@ -126,7 +126,7 @@
   - 알려진 점: 시청 플레이어는 16:9라 세로 카메라는 좌우 여백(letterbox). 카메라 모드에 "카메라 끄기" 버튼 없음(모드 전환 · 화면 이탈로 해제). 재획득 실패로 음소거된 경우 방송자 화면에 별도 안내 없음
 
 - [x] (11-12) PR #24(#7) · PR #25(#8 + 문서) develop 머지, 이슈 #8 닫힘
-- [x] (11-12) #11 댓글 프론트: 브랜치 `feature/comment/#11-comment-ui`(하위 세션 구현 · 메인 세션 검토 · E2E)
+- [x] (11-12) #11 댓글 프론트: 브랜치 `feature/comment/#11-comment-ui`, PR #26 develop 머지 완료(하위 세션 구현 · 메인 세션 검토 · E2E)
   - `lib/comments.ts`(타입 · id 키 리듀서 · `fetchComments` · `formatCommentTime`), `components/comment/`(`useComments` 목록 + SSE, `CommentPanel` 자동 스크롤 · "새 댓글" 버튼 · 이전 댓글 더 보기, `CommentComposer` Enter 전송 · Shift+Enter 줄바꿈 · IME 조합 중 무시 · 500자, `CommentItem` 인라인 수정 · 삭제 확인 · 방송자 배지 · (수정됨))
   - 상세 화면: lg 이상 2단(왼쪽 플레이어 · 정보, 오른쪽 댓글), 모바일은 아래. 컨테이너 `max-w-6xl`
   - 상태별: LIVE 작성 가능(비로그인은 로그인 링크), READY 안내, ENDED 읽기 전용. 수정 · 삭제는 서버가 상태와 무관하게 허용하므로 화면도 허용
@@ -150,10 +150,9 @@
 - E2E 실행 방법: Postgres(5432) + 백엔드(8080, LiveKit Cloud env) + `next start -p 3100` 후 `node pc-broadcast.mjs`
 
 ## 다음 작업 (순서대로)
-1. 댓글 UI PR CI 확인 · 머지
-2. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
-3. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료)
-4. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
+1. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
+2. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료)
+3. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
 
 ## 사용자 확인 필요
 - (11-05, 11-11 설치 확인됨) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
