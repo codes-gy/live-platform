@@ -134,7 +134,7 @@
   - 확인: lint · build. **Playwright E2E 22개 통과**(scratchpad `e2e/comments.mjs`, 실제 Spring + Next rewrite): READY 안내, 비로그인 로그인 링크, 작성 → 비로그인 화면에 SSE로 250ms 도착, 내 댓글 중복 없음, 방송자 배지, 권한별 버튼(비로그인 없음 · 작성자 수정/삭제 · 방송 소유자는 남의 댓글 삭제만), 남의 댓글 수정 API 403, 수정 실시간 반영 (수정됨), 소유자 삭제 실시간 제거, 새로고침 후 유지, 종료 → 읽기 전용, 375px 가로 넘침 0
   - 못 한 것: 실제 한글 IME 입력, 네트워크 끊김 후 재연결 보충, 이전 댓글 불러올 때 스크롤 위치
 
-- [x] (11-12) #28 화면 다듬기(디자이너 관점 검토 반영): 브랜치 `feature/ui/#28-ui-polish`, PR 생성 · **머지 대기**
+- [x] (11-12) #28 화면 다듬기(디자이너 관점 검토 반영): 브랜치 `feature/ui/#28-ui-polish`, PR #29 develop 머지 완료(11-12, 이슈 #28 닫힘)
   - 검토: PC 1440px · 휴대폰 390px로 전 화면 스크린샷(scratchpad `e2e/review.mjs`) → 문제 목록을 사용자에게 보고 후 "개선해줘"로 진행
   - 글꼴: CSS에 이름만 있던 Pretendard를 실제 로드(`layout.tsx`의 `<link precedence>`, jsDelivr 동적 서브셋 v1.3.9, OFL-1.1 → README 출처 표기 필요). 본문 `word-break: keep-all` · 제목 `text-wrap: balance`
   - 목록 카드: 썸네일 안 제목 중복 제거 → 방송자 이니셜(`OwnerAvatar`) + "N분째 방송 중"/"방금 시작"/"N분 방송"/"방송 예정". 아래 줄은 닉네임(+ 종료 · 등록 시각)
@@ -146,7 +146,7 @@
   - 문서: `DESIGN.md` 6.2 · 9절, `ARCHITECTURE.md` 프론트 트리, `REQUIREMENTS.md` #28 출처
 
 ## 현재 상태
-- (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 PR 머지 대기. 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
+- (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 머지 완료(PR #29). 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
 - (11-12) 비용: 사용자가 LiveKit 비용을 문의 → Cloud 무료 Build 플랜(카드 불필요, 월 참가자 5,000분 · 내려받기 50GB · 동시 100명 · 녹화 60분, 초과 시 과금 대신 차단, 계정 단위)으로 충분하다고 답함. 코드 변경 없이 유지
 - (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 실행: `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home LIVEKIT_URL=ws://localhost:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret ./gradlew bootRun`. 프론트 `npm run dev`(3000) · E2E는 `next start -p 3100`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
 - (11-12) 로컬 DB에 11-05의 "CLI 송출 시험"(id 2)이 LIVE로 남아 있음(로컬은 웹훅 미연결이라 종료 신호를 못 받음). 운영에서도 웹훅 유실 시 같은 일이 생길 수 있어 정리 작업을 다음 작업에 넣음
