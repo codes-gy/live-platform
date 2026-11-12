@@ -2,6 +2,8 @@
 
 - 마감: **2026-11-19(목) 23:59** · 제출물: 공개 GitHub 저장소 URL 1회
 - 평가 우선순위: 필수 기능 완결성 > 인증·인가 > 코드 품질·방송 상태 관리 > README > 선택 기능 가산점
+- 요구사항 원문 · 항목별 진행 상태: [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) (11-12 작성, 작업 완료 시 상태 칸도 함께 갱신)
+- 아키텍처 · 구조도: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) / 설계(ERD · 상태 머신 · 인가 표 · API · 시퀀스 · 결정 이유): [`docs/DESIGN.md`](docs/DESIGN.md) — 기능이 바뀌면 해당 절과 **(예정)** 표기를 함께 고친다
 
 ## 확정 결정 사항 (2026-11-05)
 | 항목 | 결정 |
@@ -103,7 +105,7 @@
   - 테스트 97개 통과(`CommentControllerTest` 27 추가). 실서버 curl로 SSE 헤더 · 이벤트 순서 확인
   - 후속: 레이트 리밋, 재연결 때 프론트가 목록 첫 페이지를 다시 받아 id로 합치기, Next rewrite 경유 SSE 버퍼링(gzip) 확인 → 필요하면 `compress: false`, 다중 서버면 pub/sub
 
-- [x] (11-12) #7 PC 송출: 브랜치 `feature/live/#7-pc-broadcast`(하위 세션 구현 · 메인 세션 검토), PR #24(머지 대기)
+- [x] (11-12) #7 PC 송출: 브랜치 `feature/live/#7-pc-broadcast`(하위 세션 구현 · 메인 세션 검토), PR #24 develop 머지 완료(11-12)
   - `/studio/[id]`(RequireAuth + 소유자 아니면 "송출할 권한이 없습니다", getDisplayMedia 없는 브라우저는 PC Chrome/Edge 안내)
   - `components/studio/`: `media.ts`(`Capture{screen, screenAudio, mic, micMuted}`, `captureScreen` = `createLocalScreenTracks({audio, systemAudio:"include", selfBrowserSurface:"exclude", surfaceSwitching:"include", 1080p30})`, 취소는 null, `captureMic` 실패 null), `useBroadcastSession.ts`(상태 `setup | connecting | live | ending | ended`, raw `Room`으로 직접 연결 · 퍼블리시), `Studio.tsx`(화면/마이크 선택 → 미리보기 → 방송 시작 · 재개, 마이크 켜기/끄기(방송 전) · 음소거(방송 중), 화면 바꾸기, 종료 확인, 경과 시간, beforeunload 경고)
   - setup은 READY면 "방송 시작"(`start`), LIVE면 "방송 재개"(`publisher-token`). ROOM_DELETED · `BROADCAST_ENDED` → 종료 화면. 그 밖의 끊김 · 연결 실패 → setup + 안내 문구(재개 버튼으로 다시 연결)
@@ -114,9 +116,23 @@
   - 못 한 것: 실제 Chrome 탭 오디오 · Windows 시스템 오디오 체크박스 동작, 다른 기기(휴대폰)에서 시청 → 사용자 수동 확인 필요
   - 알려진 빈틈: start 요청 중 화면을 떠나면 서버는 LIVE인데 방송자 없음 → LiveKit 방 emptyTimeout(2분)으로 room_finished → ENDED 정리
 
+- [x] (11-12) #8 모바일 송출: 브랜치 `feature/live/#8-mobile-broadcast`(#7 브랜치 b95a0ae 위, 워크트리 `../live-platform-8`), 커밋 2개 · **push · PR 전**(사용자 승인 대기)
+  - 하위 세션(poteto-agent, sonnet)이 구현, 메인 세션이 검토 · 수정 · E2E
+  - 모양: `StudioMode = "screen" | "camera"`, `Capture{video?: VideoCapture, mic?, micMuted}`, `VideoCapture = {kind:"screen", track, audio?} | {kind:"camera", track, facing}`. `screen`/`screenAudio` 필드는 없앰
+  - 휴대폰(`getDisplayMedia` 없음)은 카메라만, PC는 setup에서 "화면 공유 | 카메라" 선택(웹캠 송출 가능). 둘 다 없으면 HTTPS · 지원 브라우저 안내. 카메라 켤 때 마이크도 요청, 전면 카메라 미리보기만 거울 반전, 전면/후면 전환은 `restartTrack({facingMode})`(같은 퍼블리케이션 유지, 휴대폰에서만 버튼), Wake Lock(`useWakeLock`), 미리보기 상자는 카메라 모드 좁은 화면에서 3:4
+  - **검토에서 고친 것**: 하위 세션은 방송 중 카메라 Ended 때 트랙을 직접 내렸는데, LiveKit SDK가 SDK가 만든 카메라 트랙은 Ended 시 자동으로 다시 잡고(실패 시 음소거) 모바일 앱 복귀 때도 재획득한다(`livekit-client.esm.mjs` `handleTrackEnded` · `handleAppVisibilityChanged`) → 방송 중에는 SDK에 맡기고 setup에서만 미리보기를 비우도록 수정
+  - 확인: lint · build(Turbopack) 통과. **로컬 LiveKit(dev) + Playwright E2E 34개 통과**(scratchpad `e2e/mobile-broadcast.mjs`, Chrome for Testing 1248 + 가짜 카메라/마이크): 휴대폰 에뮬레이션(Pixel 7, getDisplayMedia 제거) 모드 선택 없음 · 카메라 전 시작 비활성 · 미리보기 거울 · 마이크 함께 잡힘 · 시작 → LIVE · 비로그인 시청자 영상 + 오디오 수신 · 방송 중 전환 후 미리보기 반전 해제 · 시청자 영상 유지 · 종료 → 양쪽 종료 화면 · ENDED · 미리보기 해제 / PC 웹캠 모드 같은 흐름(전환 버튼 숨김) / PC 화면 공유 회귀(시청자 1920x1080, 종료). iPhone SE 폭에서 가로 넘침 0px 스크린샷 확인
+  - 못 한 것: **실제 휴대폰**(iOS Safari · Android Chrome) 송출 · 후면 카메라 · 앱 전환 복구 · Wake Lock — HTTPS 필요 → 배포(#9) 후 또는 터널로 사용자 확인
+  - 알려진 점: 시청 플레이어는 16:9라 세로 카메라는 좌우 여백(letterbox). 카메라 모드에 "카메라 끄기" 버튼 없음(모드 전환 · 화면 이탈로 해제). 재획득 실패로 음소거된 경우 방송자 화면에 별도 안내 없음
+
 ## 현재 상태
+- (11-12) #8 모바일 송출 구현 · E2E 통과(로컬 브랜치, push 전). 필수 기능 코드는 모두 구현됨 — 남은 필수는 배포(#9) · README(#14) · 시연 영상 · 실기기 확인
+- (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → E2E는 `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
+- (11-12) `docs/ARCHITECTURE.md` · `docs/DESIGN.md` 작성(Mermaid 13개, mermaid-cli 11.4.2로 렌더링 확인). 미구현 부분(모바일 #8 · 배포 #9 · 도네이션 #12 · 녹화 #13 · 댓글 UI)은 **(예정)** 설계로 기재 — 구현 시 이 설계를 출발점으로 쓴다. 문서 3개 모두 아직 커밋 안 함(#7 브랜치 작업 트리)
+- (11-12) 요구사항 원문을 `docs/REQUIREMENTS.md`로 정리하고 항목별 상태를 매김: 필수 14개 중 완료 7 · 부분 4 · 미착수 3(모바일), 선택 8개 중 완료 1 · 부분 1(댓글 UI) · 미착수 6, 제출 요건(배포 URL · README · 시연 영상) 모두 남음. **마감 D-7**
+- (11-12) 이번 세션은 macOS(`/Users/podojjang/project/live-platform`)에서 진행. 로컬 체크아웃이 #5 브랜치에 머물러 있어 `feature/live/#7-pc-broadcast`로 전환함
 - 필수: 백엔드 전부 + 프론트 인증 · 목록 · 상세 · 시청 · 등록 · 수정 · 삭제 완료(PR #20 · #21 · #22 머지, 11-11). 남은 필수는 #8 모바일 송출, #9 배포, #14 README
-- #7 PC 송출 구현 · E2E 완료(11-12, PR #24 머지 대기)
+- #7 PC 송출 완료(PR #24 머지, 11-12)
 - 선택: 댓글 백엔드 완료(#11), 프론트 댓글 UI 미구현
 - 작업 방식(11-11): 메인 세션이 하위 세션(pstack:poteto-agent, worktree 격리)에 백엔드 · 프론트를 나눠 맡기고, 결과를 모아 사용자 승인 후 push · PR · 머지. 하위 세션은 로컬 커밋까지만, PROGRESS.md는 메인 세션만 수정
 - 대시보드: #1~#6 · #10 · #11 완료로 갱신 필요(이번에 미갱신)
@@ -124,11 +140,11 @@
 - E2E 실행 방법: Postgres(5432) + 백엔드(8080, LiveKit Cloud env) + `next start -p 3100` 후 `node pc-broadcast.mjs`
 
 ## 다음 작업 (순서대로)
-1. **PR #24 CI 확인 · 머지**(사용자 요청 시) + 실제 Chrome에서 탭 오디오 · 다른 기기 시청 수동 확인
-2. **#8 모바일 송출**: 같은 `/studio/[id]`에서 `getDisplayMedia` 없으면(휴대폰) 카메라 모드 — `Capture.screen` 자리에 카메라 트랙(source Camera), 전/후면 전환, 마이크, Wake Lock. 지금은 "PC Chrome/Edge 필요" 안내가 나오는 분기를 카메라 송출로 바꾸면 됨. 실제 휴대폰 확인은 HTTPS 필요 → 배포(#9) 또는 터널 필요
-3. **댓글 프론트(#11 후속)**: 시청 화면 옆 댓글 패널(목록 + SSE + 작성, 재연결 시 첫 페이지 다시 받아 합치기), SSE가 Next rewrite에서 버퍼링되는지 확인. 백엔드 하위 세션은 #12 도네이션(토스 테스트 키 필요) 또는 #13 녹화 준비 가능
-4. **배포(#9)** — 호스팅 결정 대기
-5. README(#14)
+1. **사용자 승인 후**: PR #24(#7) 머지 → `feature/live/#8-mobile-broadcast` push · PR(base develop) · CI · 머지. 문서 3개(`docs/`) + PROGRESS는 별도 `chore/docs/…` PR 또는 #8 PR에 포함
+2. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오 확인
+3. **댓글 프론트(#11 후속)**: 시청 화면 옆 댓글 패널(목록 + SSE + 작성, 재연결 시 첫 페이지 다시 받아 합치기), SSE가 Next rewrite에서 버퍼링되는지 확인
+4. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료)
+5. 시간이 남으면 #12 도네이션(토스 테스트 키 필요) · #13 녹화
 
 ## 사용자 확인 필요
 - (11-05, 11-11 설치 확인됨) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
