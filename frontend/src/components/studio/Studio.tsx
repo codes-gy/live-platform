@@ -7,8 +7,9 @@ import { loadBroadcast, type Broadcast, type BroadcastLoad } from "@/lib/broadca
 import { useAuth } from "../auth/AuthProvider";
 import { StatusBadge } from "../broadcast/StatusBadge";
 import { Card, ErrorMessage, Notice, PrimaryButton } from "../ui";
-import { canCaptureScreen, type Capture } from "./media";
+import { canCaptureCamera, canCaptureScreen, type Capture, type StudioMode } from "./media";
 import { useBroadcastSession } from "./useBroadcastSession";
+import { useWakeLock } from "./useWakeLock";
 
 type State = { kind: "loading" } | BroadcastLoad;
 
@@ -21,7 +22,8 @@ export function Studio({ id }: { id: number }) {
   const { user } = useAuth();
   const [state, setState] = useState<State>({ kind: "loading" });
   // 서버 렌더에서는 알 수 없으므로 true로 시작하고, 브라우저에서 실제 값으로 바뀐다
-  const supported = useSyncExternalStore(noopSubscribe, canCaptureScreen, () => true);
+  const canScreen = useSyncExternalStore(noopSubscribe, canCaptureScreen, () => true);
+  const canCamera = useSyncExternalStore(noopSubscribe, canCaptureCamera, () => true);
 
   useEffect(() => {
     let active = true;
@@ -55,20 +57,25 @@ export function Studio({ id }: { id: number }) {
       </Notice>
     );
   }
-  if (!supported && state.broadcast.status !== "ENDED") {
+  if (!canScreen && !canCamera && state.broadcast.status !== "ENDED") {
     return (
-      <Notice title="이 브라우저에서는 화면 송출을 할 수 없습니다" description="PC의 Chrome 또는 Edge에서 접속해 주세요. 휴대폰 카메라 송출은 곧 지원됩니다.">
+      <Notice
+        title="이 브라우저에서는 방송을 할 수 없습니다"
+        description="카메라와 화면 송출은 보안 연결(HTTPS) 주소에서만 동작합니다. 주소가 https://로 시작하는지 확인하고, 휴대폰은 iOS Safari 또는 Android Chrome, PC는 Chrome 또는 Edge에서 접속해 주세요.">
         <Link href={`/broadcasts/${state.broadcast.id}`} className={linkButton}>
           방송 상세로
         </Link>
       </Notice>
     );
   }
-  return <Session key={state.broadcast.id} broadcast={state.broadcast} />;
+  return <Session key={state.broadcast.id} broadcast={state.broadcast} canScreen={canScreen} canCamera={canCamera} />;
 }
 
-function Session({ broadcast }: { broadcast: Broadcast }) {
-  const { phase, capture, message, pickScreen, toggleMic, toggleMicMute, goLive, end } = useBroadcastSession(broadcast);
+function Session({ broadcast, canScreen, canCamera }: { broadcast: Broadcast; canScreen: boolean; canCamera: boolean }) {
+  const { phase, capture, message, mode, selectMode, pickVideo, flipCamera, toggleMic, toggleMicMute, goLive, end } = useBroadcastSession(
+    broadcast,
+    canScreen ? "screen" : "camera",
+  );
 
   // 방송 중 탭을 닫거나 새로고침하면 송출이 끊긴다
   const guarded = phase.kind === "connecting" || phase.kind === "live" || phase.kind === "ending";
@@ -78,6 +85,7 @@ function Session({ broadcast }: { broadcast: Broadcast }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [guarded]);
+  useWakeLock(guarded);
 
   if (phase.kind === "ended") {
     return (
@@ -95,6 +103,9 @@ function Session({ broadcast }: { broadcast: Broadcast }) {
   }
 
   const live = phase.kind === "live" || phase.kind === "ending";
+  const busy = phase.kind === "connecting" || phase.kind === "ending";
+  const video = capture.video;
+  const camera = mode === "camera";
 
   return (
     <div className="flex flex-col gap-4">
@@ -104,33 +115,52 @@ function Session({ broadcast }: { broadcast: Broadcast }) {
         {live && <Elapsed since={phase.broadcast.startedAt} />}
       </div>
 
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-        {capture.screen ? (
-          <Preview track={capture.screen} />
+      {phase.kind === "setup" && canScreen && canCamera && <ModeToggle mode={mode} onSelect={selectMode} />}
+
+      <div className={`relative w-full overflow-hidden rounded-xl bg-black ${camera ? "aspect-[3/4] sm:aspect-video" : "aspect-video"}`}>
+        {video ? (
+          <Preview track={video.track} mirror={video.kind === "camera" && video.facing === "user"} />
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-white">
-            <p className="font-semibold">{live ? "공유 중인 화면이 없습니다" : "방송할 화면을 선택하세요"}</p>
-            <button type="button" onClick={pickScreen} className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">
-              화면 선택
+            <p className="font-semibold">
+              {camera ? (live ? "켜져 있는 카메라가 없습니다" : "카메라를 켜 주세요") : live ? "공유 중인 화면이 없습니다" : "방송할 화면을 선택하세요"}
+            </p>
+            <button type="button" onClick={pickVideo} className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">
+              {camera ? "카메라 켜기" : "화면 선택"}
             </button>
           </div>
         )}
       </div>
 
       <ErrorMessage message={message} />
-      {capture.screen && !capture.screenAudio && <NoAudioHint />}
+      {video?.kind === "screen" && !video.audio && <NoAudioHint />}
 
       <Card className="!p-5">
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={pickScreen} disabled={phase.kind === "connecting" || phase.kind === "ending"} className={secondaryButton}>
-            {capture.screen ? "화면 바꾸기" : "화면 선택"}
-          </button>
+          {camera ? (
+            video ? (
+              // 카메라가 여러 개인 건 휴대폰이라 PC 웹캠에는 보이지 않는다
+              !canScreen && (
+                <button type="button" onClick={flipCamera} disabled={busy} className={secondaryButton}>
+                  전면/후면 전환
+                </button>
+              )
+            ) : (
+              <button type="button" onClick={pickVideo} disabled={busy} className={secondaryButton}>
+                카메라 켜기
+              </button>
+            )
+          ) : (
+            <button type="button" onClick={pickVideo} disabled={busy} className={secondaryButton}>
+              {video ? "화면 바꾸기" : "화면 선택"}
+            </button>
+          )}
           <MicControl capture={capture} live={live} onToggleCapture={toggleMic} onToggleMute={toggleMicMute} />
           <div className="ml-auto">
             {live ? (
               <EndButton pending={phase.kind === "ending"} onEnd={end} />
             ) : (
-              <PrimaryButton onClick={goLive} disabled={!capture.screen || phase.kind === "connecting"}>
+              <PrimaryButton onClick={goLive} disabled={!video || phase.kind === "connecting"}>
                 {phase.kind === "connecting" ? "연결하는 중…" : phase.broadcast.status === "LIVE" ? "방송 재개" : "방송 시작"}
               </PrimaryButton>
             )}
@@ -138,7 +168,7 @@ function Session({ broadcast }: { broadcast: Broadcast }) {
         </div>
         <p className="mt-3 text-xs text-muted">
           {phase.broadcast.status === "LIVE" && !live
-            ? "방송은 아직 진행 중입니다. 화면을 선택하고 재개하면 시청자에게 이어서 송출됩니다."
+            ? `방송은 아직 진행 중입니다. ${camera ? "카메라를 켜고" : "화면을 선택하고"} 재개하면 시청자에게 이어서 송출됩니다.`
             : "방송 중 이 탭을 닫거나 다른 화면으로 이동하면 송출이 멈추고, 30초 안에 돌아오지 않으면 방송이 자동으로 종료됩니다."}
         </p>
       </Card>
@@ -198,7 +228,7 @@ function EndButton({ pending, onEnd }: { pending: boolean; onEnd: () => void }) 
     );
   }
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <span className="text-sm">정말 종료할까요?</span>
       <button type="button" onClick={() => setConfirming(false)} disabled={pending} className={secondaryButton}>
         취소
@@ -210,7 +240,29 @@ function EndButton({ pending, onEnd }: { pending: boolean; onEnd: () => void }) 
   );
 }
 
-function Preview({ track }: { track: LocalVideoTrack }) {
+function ModeToggle({ mode, onSelect }: { mode: StudioMode; onSelect: (mode: StudioMode) => void }) {
+  const options: { value: StudioMode; label: string }[] = [
+    { value: "screen", label: "화면 공유" },
+    { value: "camera", label: "카메라" },
+  ];
+  return (
+    <div role="group" aria-label="송출 방식" className="inline-flex self-start rounded-lg border border-line p-0.5">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onSelect(o.value)}
+          aria-pressed={mode === o.value}
+          className={`rounded-md px-3 py-1.5 text-sm font-medium ${mode === o.value ? "bg-surface-2" : "text-muted hover:bg-surface-2"}`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Preview({ track, mirror }: { track: LocalVideoTrack; mirror: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -220,7 +272,8 @@ function Preview({ track }: { track: LocalVideoTrack }) {
       track.detach(el);
     };
   }, [track]);
-  return <video ref={ref} muted playsInline autoPlay className="h-full w-full object-contain" />;
+  // 거울 반전은 미리보기에만 건다. 송출 트랙은 그대로라 시청자에게는 글자가 바로 보인다
+  return <video ref={ref} muted playsInline autoPlay style={mirror ? { transform: "scaleX(-1)" } : undefined} className="h-full w-full object-contain" />;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
