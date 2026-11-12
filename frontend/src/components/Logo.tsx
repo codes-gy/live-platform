@@ -20,7 +20,7 @@ function RabbitShape() {
  */
 export function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2 font-bold tracking-tight" aria-label="핏 홈">
+    <Link href="/" className="flex items-center gap-2 font-bold tracking-tight" aria-label="지이잉 홈">
       <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
         <defs>
           <clipPath id="logo-rabbit">
@@ -39,7 +39,7 @@ export function Logo() {
         <circle cx="9.3" cy="15" r="1" fill="var(--color-surface)" />
         <circle cx="14.7" cy="15" r="1" fill="var(--color-surface)" />
       </svg>
-      <span className="text-lg">핏</span>
+      <span className="text-lg">지이잉</span>
     </Link>
   );
 }

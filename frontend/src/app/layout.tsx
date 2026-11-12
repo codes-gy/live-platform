@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "핏", template: "%s · 핏" },
+  title: { default: "지이잉", template: "%s · 지이잉" },
   description: "PC 화면 공유나 휴대폰 카메라로 바로 라이브 방송을 켜고, 어느 기기에서나 실시간으로 시청하세요.",
 };
 

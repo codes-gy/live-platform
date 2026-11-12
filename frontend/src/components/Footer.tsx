@@ -5,7 +5,7 @@ export function Footer() {
     <footer className="border-t border-line bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p>
-          <span className="font-semibold text-fg">핏</span> · 설치 없이 브라우저에서 바로 켜는 라이브 방송
+          <span className="font-semibold text-fg">지이잉</span> · 설치 없이 브라우저에서 바로 켜는 라이브 방송
         </p>
         <nav className="flex gap-4">
           <Link href="/" className="hover:text-fg">
