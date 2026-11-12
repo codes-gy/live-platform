@@ -16,7 +16,7 @@ function RabbitShape() {
 
 /**
  * 방송 표시등 대신 토끼: 아래에서부터 빨갛게 차올랐다가 비워지기를 반복한다.
- * 테두리를 굵게 그린 뒤 같은 모양을 바탕색으로 덮어 귀와 머리가 겹치는 안쪽 선을 지운다.
+ * 테두리를 굵게 그린 뒤 같은 모양을 헤더 바탕색으로 덮어 귀와 머리가 겹치는 안쪽 선을 지운다.
  */
 export function Logo() {
   return (
@@ -30,14 +30,14 @@ export function Logo() {
         <g fill="none" stroke="var(--color-live)" strokeWidth="2.4">
           <RabbitShape />
         </g>
-        <g fill="var(--color-bg)">
+        <g fill="var(--color-surface)">
           <RabbitShape />
         </g>
         <g clipPath="url(#logo-rabbit)">
           <rect x="0" y="0" width="24" height="24" fill="var(--color-live)" className="logo-rabbit-fill" />
         </g>
-        <circle cx="9.3" cy="15" r="1" fill="var(--color-bg)" />
-        <circle cx="14.7" cy="15" r="1" fill="var(--color-bg)" />
+        <circle cx="9.3" cy="15" r="1" fill="var(--color-surface)" />
+        <circle cx="14.7" cy="15" r="1" fill="var(--color-surface)" />
       </svg>
       <span className="text-lg">핏</span>
     </Link>

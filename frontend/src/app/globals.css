@@ -1,24 +1,24 @@
 @import "tailwindcss";
 
-/* 방송 화면이 주인공이라 어두운 바탕 하나로 간다. 강조색은 ON AIR 표시등의 붉은색. */
+/* 밝은 바탕에 흰 카드. 영상 자리만 검게 두어 화면이 주인공이 되게 한다. 강조색은 방송 표시등의 붉은색. */
 @theme {
-  --color-bg: #0f1013;
-  --color-surface: #17181d;
-  --color-surface-2: #202128;
-  --color-line: #2c2d36;
-  --color-fg: #eceef2;
-  --color-muted: #9a9caa;
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f1f4;
+  --color-line: #e2e4e9;
+  --color-fg: #15171c;
+  --color-muted: #6a6f7d;
   --color-live: #ff3b45;
   --color-live-strong: #e52a34;
-  --color-ok: #3ccf91;
-  --color-danger: #ff6b6b;
+  --color-ok: #12a46b;
+  --color-danger: #e5484d;
 
   --font-sans: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
     "Malgun Gothic", system-ui, sans-serif;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
