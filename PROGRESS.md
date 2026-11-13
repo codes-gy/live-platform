@@ -145,6 +145,13 @@
   - 확인: lint · tsc · build 통과. 회귀 E2E 댓글 22개 · 송출 34개 통과. 새 E2E 15개 통과(scratchpad `e2e/ui-polish.mjs`): 글꼴 로드 · keep-all, 시작 비활성 안내, 스튜디오 댓글 패널, 음량 막대 움직임, 시청자 수 스튜디오 · 플레이어 2명 → 1명 나가면 1명, 시청자 댓글이 스튜디오에 실시간 도착 · 방송자 삭제 → 시청자 화면에서 제거, 카드 제목 1회 · 캡션, 종료 "1분 미만", 휴대폰 가로 넘침 0. E2E가 카드 시간 중복("방금 시작" 2번)을 잡아 수정
   - 문서: `DESIGN.md` 6.2 · 9절, `ARCHITECTURE.md` 프론트 트리, `REQUIREMENTS.md` #28 출처
 
+- [x] (11-13) #34 LIVE로 남은 방송 주기적 정리: 브랜치 `feature/live/#34-live-reconcile`(WSL PC 세션, 하위 세션 구현 · 메인 세션 검토), PR 대기
+  - 이유: 웹훅 유실(로컬은 웹훅 없음, Heroku 야간 정지 중 웹훅 · 메모리 유예 작업 소실) 시 방송이 영원히 LIVE로 남음 → 방송 상태 관리 평가 항목
+  - `LiveReconcileScheduler`(`@Scheduled` fixedDelay · initialDelay = `app.livekit.reconcile-interval`, 기본 1m, `@EnableScheduling`은 `LiveKitConfig`) → `BroadcastLiveService.reconcileLive()`: 시작한 지 유예(30s)가 지난 LIVE 방송(`findLiveStartedBefore`)마다 LiveKit에 방송자 있는지 확인 → 없으면 유예 뒤 다시 확인(기존 `endIfBroadcasterGone`)해서도 없을 때만 ENDED(`endLocked` 한 곳, 댓글 SSE `ended` 발행) + 방 닫기. 방송별 재확인 예약은 하나만(`recheckPending`). LiveKit 호출 실패 시 그 회차 중단(아무것도 안 끝냄)
+  - 상태는 DB · LiveKit에서만 읽어 재시작 후에도 다음 주기에 다시 찾음. 새로고침(유예 안 복귀)은 종료 안 됨
+  - 테스트 104개 통과(`LiveReconcileTest` 7: 방송자 없음 → 종료 · 방 삭제, 있음 → 유지, 유예 안 복귀 → 유지, 막 시작 → 유지, LiveKit 실패 → 유지, deleteRoom 실패해도 ENDED, READY/ENDED 무시). 테스트는 주기 1h로 타이머 끔
+  - **실제 LiveKit Cloud 확인**: 주기 5s로 띄우고 방송자 없이 start → 63초 뒤 ENDED(시작 유예 30 + 주기 ≤5 + 재확인 30). 로컬은 웹훅이 없고 LiveKit 빈 방 정리는 2분이라 정리 작업이 끝낸 것
+
 ## 현재 상태
 - (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 머지 완료(PR #29). 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
 - (11-12) 비용: 사용자가 LiveKit 비용을 문의 → Cloud 무료 Build 플랜(카드 불필요, 월 참가자 5,000분 · 내려받기 50GB · 동시 100명 · 녹화 60분, 초과 시 과금 대신 차단, 계정 단위)으로 충분하다고 답함. 코드 변경 없이 유지
