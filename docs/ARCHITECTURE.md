@@ -16,7 +16,7 @@
 | 스트리밍 | **LiveKit Cloud** (WebRTC SFU) | 미디어 서버를 직접 운영하지 않고 1:N 저지연 송출을 얻는다. 서버는 토큰 발급 · 방 생성/삭제 · 웹훅만 담당 |
 | 테스트 | JUnit 5 · Testcontainers PostgreSQL · MockMvc · Playwright(E2E, 저장소 밖) | 실제 DB로 통합 테스트, LiveKit은 가짜 클라이언트로 대체 |
 | CI | GitHub Actions | PR마다 백엔드 `./gradlew test` + 프론트 lint · build |
-| 배포 **(예정)** | 호스팅 결정 대기(#9) — 프론트 Vercel + 백엔드/DB Railway 등 | HTTPS 필수(모바일 카메라 · 화면 공유는 보안 컨텍스트에서만 동작) |
+| 배포 | Heroku 컨테이너(프론트 · 백엔드 앱 2개, Basic 다이노) + Heroku Postgres Essential-0 (#9) | HTTPS 자동(모바일 카메라 · 화면 공유는 보안 컨텍스트에서만 동작). GitHub 학생 크레딧 사용 |
 
 ## 2. 시스템 구성도
 
@@ -186,20 +186,28 @@ flowchart LR
     Studio -- 종료 --> Detail
 ```
 
-## 5. 배포 구성 (예정, #9)
+## 5. 배포 구성 (#9)
 
 ```mermaid
 flowchart LR
-    U["사용자 · 심사자<br/>PC · 휴대폰"] -- HTTPS --> FE["프론트 호스팅<br/>(Next.js)"]
-    FE -- "/api rewrites" --> BE["백엔드 호스팅<br/>(Spring Boot 컨테이너)"]
-    BE --> PG[("관리형 PostgreSQL")]
+    U["사용자 · 심사자<br/>PC · 휴대폰"] -- HTTPS --> FE["Heroku onair-live-web<br/>(Next.js standalone 컨테이너)"]
+    FE -- "/api rewrites" --> BE["Heroku onair-live-api<br/>(Spring Boot 컨테이너)"]
+    BE --> PG[("Heroku Postgres<br/>Essential-0")]
     BE <-- "RoomService · 웹훅" --> LK["LiveKit Cloud"]
     U <-- "WebRTC (wss · UDP/TCP)" --> LK
+    GH["GitHub Actions<br/>운영 시간 예약"] -. "09:00 켜기 · 20:00 끄기 (KST)" .-> FE & BE
 ```
 
-- 호스팅 후보: Railway(추천, Spring + PostgreSQL 한 곳 · HTTPS 자동) · Fly.io · Render · VPS(Docker Compose + Nginx). 결정 대기.
-- 운영 환경변수: `COOKIE_SECURE=true`, 강한 `JWT_SECRET`, `LIVEKIT_*`, `CORS_ALLOWED_ORIGINS`, 프론트 빌드 시 `BACKEND_URL`.
-- LiveKit Cloud 프로젝트의 웹훅 URL을 `https://<백엔드>/api/livekit/webhook`으로 등록해야 비정상 종료가 정리된다.
+- 서비스: https://onair-live-web-28fc2f0d1715.herokuapp.com (백엔드: https://onair-live-api-daf462a2a9af.herokuapp.com)
+- 앱 2개 모두 Heroku 컨테이너 스택(US 리전), Basic 다이노(메모리 512MB, 잠들지 않음). 이미지는 `backend/Dockerfile` · `frontend/Dockerfile`, 배포는 `scripts/deploy-heroku.sh [api|web|all]`(로컬 Docker로 linux/amd64 빌드 → Heroku 레지스트리 푸시 → release).
+  - Heroku 레지스트리는 Docker v2 매니페스트만 받는다. buildx 기본 OCI 형식 · 출처 증명은 `unsupported`로 거절 → `oci-mediatypes=false`, `--provenance=false`.
+  - 프론트는 `output: "standalone"`. `BACKEND_URL`은 빌드 인자로 넣는다(rewrites가 빌드 시점에 읽음).
+  - 백엔드는 `docker-entrypoint.sh`가 Heroku의 `DATABASE_URL`(postgres://)을 JDBC `DB_URL` · `DB_USERNAME` · `DB_PASSWORD`로 바꾼다(`sslmode=require`). 포트는 `PORT`.
+  - 512MB 안에 들도록 `JAVA_TOOL_OPTIONS`(힙 45% · SerialGC · 코드 캐시 48m · 메타스페이스 160m · C1만) + Tomcat 스레드 40. 처음 설정(힙 70%)은 R14 메모리 초과가 났다.
+- **운영 시간 오전 9시 ~ 오후 8시(KST)**: `.github/workflows/dyno-schedule.yml`이 다이노를 1 ↔ 0으로 바꾼다(비용 절감, 사용자 결정). 이 시간 밖에는 접속할 수 없다. 수동 실행(workflow_dispatch)으로 언제든 켜고 끌 수 있다. 저장소 시크릿 `HEROKU_API_KEY`는 write 범위 전용 토큰. DB는 항상 켜져 있다.
+- 운영 환경변수(백엔드): `DATABASE_URL`(애드온), `JWT_SECRET`(무작위), `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGINS`(프론트 주소), `TEST_ACCOUNTS_ENABLED=true`, `JAVA_TOOL_OPTIONS`, `SERVER_TOMCAT_THREADS_MAX`, `LIVEKIT_*`.
+- LiveKit Cloud 프로젝트의 웹훅 URL을 `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`으로 등록해야 비정상 종료가 정리된다.
+- 댓글 SSE는 Heroku 라우터 · Next rewrite를 거쳐도 버퍼링 없이 도착함을 확인(첫 이벤트 즉시, 20초 `:ping`). Heroku 라우터 유휴 제한(55초)보다 ping 간격이 짧다.
 - 녹화 **(예정, #13)**: LiveKit Egress → S3 호환 스토리지.
 
 ## 6. 설정 · 환경변수
