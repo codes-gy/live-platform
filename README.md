@@ -1,11 +1,12 @@
-# live-platform
+# 지이잉 (live-platform)
 
 PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다른 기기에서 실시간으로 시청하는 웹 서비스입니다.
 
 > 작성 중입니다. 서비스 주소, 테스트 계정, 기능 확인 절차는 배포 후 채웁니다.
 
 ## 서비스 주소
-- TBD
+- https://onair-live-web-28fc2f0d1715.herokuapp.com
+- 운영 시간: 매일 오전 9시 ~ 오후 8시(KST)
 
 ## 테스트 계정
 - TBD
@@ -14,7 +15,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 - Backend: Java 25, Spring Boot 4.1, Spring Security(JWT), JPA, PostgreSQL 18, Flyway
 - Frontend: Next.js 16, TypeScript, Tailwind CSS
 - Streaming: LiveKit (WebRTC SFU)
-- Infra: AWS EC2, Docker Compose, Nginx
+- Infra: Heroku(컨테이너 · Postgres), GitHub Actions
 
 ## 로컬 실행 방법
 ### 요구 사항

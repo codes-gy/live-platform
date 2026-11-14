@@ -14,14 +14,14 @@ function Screen({ broadcast, now }: { broadcast: Broadcast; now: number }) {
       : "방송 예정";
   return (
     <div
-      className={`relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border transition-colors ${
+      className={`relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border shadow-sm transition group-hover:-translate-y-0.5 group-hover:shadow-md ${
         live
-          ? "border-live/50 bg-[radial-gradient(ellipse_at_center,rgba(255,59,69,0.22),transparent_70%)] group-hover:border-live"
-          : "border-line bg-surface-2 group-hover:border-muted/50"
+          ? "border-live/40 bg-surface bg-[radial-gradient(ellipse_at_center,rgba(255,59,69,0.16),transparent_70%)] group-hover:border-live"
+          : "border-line bg-surface-2 group-hover:border-muted/40"
       }`}
     >
       <OwnerAvatar nickname={broadcast.owner.nickname} live={live} />
-      <span className={`text-xs ${live ? "text-fg/80" : "text-muted"}`}>{caption}</span>
+      <span className={`text-xs font-medium ${live ? "text-live-strong" : "text-muted"}`}>{caption}</span>
       <StatusBadge status={broadcast.status} className="absolute left-2 top-2" />
     </div>
   );

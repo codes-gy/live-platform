@@ -145,7 +145,24 @@
   - 확인: lint · tsc · build 통과. 회귀 E2E 댓글 22개 · 송출 34개 통과. 새 E2E 15개 통과(scratchpad `e2e/ui-polish.mjs`): 글꼴 로드 · keep-all, 시작 비활성 안내, 스튜디오 댓글 패널, 음량 막대 움직임, 시청자 수 스튜디오 · 플레이어 2명 → 1명 나가면 1명, 시청자 댓글이 스튜디오에 실시간 도착 · 방송자 삭제 → 시청자 화면에서 제거, 카드 제목 1회 · 캡션, 종료 "1분 미만", 휴대폰 가로 넘침 0. E2E가 카드 시간 중복("방금 시작" 2번)을 잡아 수정
   - 문서: `DESIGN.md` 6.2 · 9절, `ARCHITECTURE.md` 프론트 트리, `REQUIREMENTS.md` #28 출처
 
-- [x] (11-13) #34 LIVE로 남은 방송 주기적 정리: 브랜치 `feature/live/#34-live-reconcile`(WSL PC 세션, 하위 세션 구현 · 메인 세션 검토), PR 대기
+- [x] (11-12) #9 배포(Heroku): 브랜치 `chore/deploy/#9-heroku`, PR #31 develop 머지 완료(11-14, 이슈 #9는 운영 송출 확인 뒤 닫음)
+  - 사용자 결정: GitHub 학생 크레딧(Heroku $312 / 24개월, 잔액 $298.25, 2028-08-31 만료)으로 Heroku에 전부 배포. 기존 앱 `mundansok` · `welive-backend` 삭제(사용자 확인, config vars 포함). **운영 시간 09~20시 KST**(사용자 선택, 접속 불가 감점 위험은 고지함)
+  - 앱: `onair-live-web`(https://onair-live-web-28fc2f0d1715.herokuapp.com) · `onair-live-api`(https://onair-live-api-daf462a2a9af.herokuapp.com), 컨테이너 스택 · US · Basic 다이노, `heroku-postgresql:essential-0`(PostgreSQL, 최대 $5/월). 예상 약 $11/월(다이노 11시간/일)
+  - 파일: `backend/Dockerfile`(temurin 25 jdk 빌드 → jre 실행) · `backend/docker-entrypoint.sh`(DATABASE_URL → JDBC, sslmode=require) · `frontend/Dockerfile`(node 24, standalone, `BACKEND_URL` 빌드 인자) · `scripts/deploy-heroku.sh [api|web|all]` · `.github/workflows/dyno-schedule.yml`(cron 0 0 / 0 11 UTC, 수동 on/off, 시크릿 `HEROKU_API_KEY` = write 범위 전용 authorization). `application.yaml` `server.port: ${PORT:8080}`, `next.config.ts` `output: "standalone"`
+  - 시행착오: Heroku 레지스트리가 buildx OCI 매니페스트 · 출처 증명을 `unsupported`로 거절 → `--output type=image,push=true,oci-mediatypes=false` + `--provenance=false`. 힙 70%로 R14(메모리 초과) → 힙 45% · SerialGC · 코드 캐시 48m · 메타스페이스 160m · C1 · Tomcat 스레드 40으로 기동 8초, R14 없음
+  - 백엔드 config: JWT_SECRET(무작위, 출력 안 함) · COOKIE_SECURE=true · CORS_ALLOWED_ORIGINS=프론트 주소 · TEST_ACCOUNTS_ENABLED=true · JAVA_TOOL_OPTIONS · SERVER_TOMCAT_THREADS_MAX. **LIVEKIT_* 미설정**
+  - 확인: Flyway V1~V3 적용, health 200, 프론트 `/` · `/login` · `/api/broadcasts` 200, 테스트 로그인 쿠키 `Secure; HttpOnly; SameSite=Lax`, 방송 등록 · 삭제, **댓글 SSE가 Heroku + Next rewrite에서 버퍼링 없음**(즉시 `:connected`, 20초 `:ping`), start는 LiveKit 키 없어 503(예상대로)
+
+- [x] (11-12) #32 서비스 이름 "핏" · 토끼 파비콘 · 도메인: 브랜치 `feature/ui/#32-brand-pit`(PR #31 위에 쌓음), PR #33 develop 머지 완료(11-14)
+  - 이름 후보를 여러 번 제안 · 겹침 검색(Cue는 해외 방송 서비스와 겹침, Tally는 설문 폼 서비스) 후 사용자가 "핏"으로 결정. 로고 · 탭 제목(`%s · 핏`) · README · 문서 제목 변경. Heroku 앱 이름(onair-live-*)은 유지
+  - 파비콘: `app/favicon.ico` 삭제 → `app/icon.svg`(흰 토끼 + 분홍 귀 · 볼 + 오른쪽 위 빨간 LIVE 점). 배포 HTML에 `<link rel="icon" href="/icon.svg…">` 확인
+  - 도메인: `heroku domains:add pit-live.kro.kr -a onair-live-web` → DNS 대상 `adjacent-rook-ze64mynua57li9kw25hozhw3.herokudns.com`(CNAME), ACM(자동 인증서) 켬. **사용자가 내도메인.한국에서 CNAME 등록 필요**(11-12 기준 아직 해석 안 됨). 백엔드 CORS에 새 주소 추가
+  - 로고: 깜빡이는 빨간 점 → 토끼 실루엣이 아래에서 빨갛게 차올랐다 비워지는 애니메이션(`Logo.tsx` clipPath + `logo-rabbit-fill` keyframes, 동작 줄이기 설정이면 멈춤). clipPath 안에 `<g>`를 넣으면 잘라내기 영역이 비어 채움이 안 보였음 → 도형을 직접 넣음
+  - **밝은 테마**(사용자 "왜 화면이 어둡지?"): 색 토큰만 바꿔 전 화면 전환(바탕 #f5f6f8 · 카드 흰색 · 글자 #15171c, 영상 자리만 검정), 메인 소개 카드(특징 칩 · 방송 시작하기 · 둘러보기), 카드 그림자 · 호버, 푸터. 배포 서버 반영
+  - 이름 최종 **"지이잉"**(11-12, 기계가 켜지는 소리 · 치지직 같은 의성어 계열). "핏"에서 변경: `layout.tsx` · `Logo.tsx` · `Footer.tsx` · `icon.svg` 주석 · README · 문서 제목. 도메인 `pit-live.kro.kr`은 이름과 안 맞음 → 사용자에게 새 도메인 여부 확인
+  - 백엔드용 `api.pit-live.kro.kr`은 필수 아님: 브라우저는 프론트의 `/api`만 부르고, 백엔드 주소가 필요한 곳은 LiveKit 웹훅뿐(herokuapp 주소로 충분)
+
+- [x] (11-13) #34 LIVE로 남은 방송 주기적 정리: 브랜치 `feature/live/#34-live-reconcile`(WSL PC 세션, 하위 세션 구현 · 메인 세션 검토), PR #35
   - 이유: 웹훅 유실(로컬은 웹훅 없음, Heroku 야간 정지 중 웹훅 · 메모리 유예 작업 소실) 시 방송이 영원히 LIVE로 남음 → 방송 상태 관리 평가 항목
   - `LiveReconcileScheduler`(`@Scheduled` fixedDelay · initialDelay = `app.livekit.reconcile-interval`, 기본 1m, `@EnableScheduling`은 `LiveKitConfig`) → `BroadcastLiveService.reconcileLive()`: 시작한 지 유예(30s)가 지난 LIVE 방송(`findLiveStartedBefore`)마다 LiveKit에 방송자 있는지 확인 → 없으면 유예 뒤 다시 확인(기존 `endIfBroadcasterGone`)해서도 없을 때만 ENDED(`endLocked` 한 곳, 댓글 SSE `ended` 발행) + 방 닫기. 방송별 재확인 예약은 하나만(`recheckPending`). LiveKit 호출 실패 시 그 회차 중단(아무것도 안 끝냄)
   - 상태는 DB · LiveKit에서만 읽어 재시작 후에도 다음 주기에 다시 찾음. 새로고침(유예 안 복귀)은 종료 안 됨
@@ -153,6 +170,7 @@
   - **실제 LiveKit Cloud 확인**: 주기 5s로 띄우고 방송자 없이 start → 63초 뒤 ENDED(시작 유예 30 + 주기 ≤5 + 재확인 30). 로컬은 웹훅이 없고 LiveKit 빈 방 정리는 2분이라 정리 작업이 끝낸 것
 
 ## 현재 상태
+- (11-12) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. 운영 시간 예약은 PR 머지 후(기본 브랜치에서만 cron 동작)
 - (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 머지 완료(PR #29). 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
 - (11-12) 비용: 사용자가 LiveKit 비용을 문의 → Cloud 무료 Build 플랜(카드 불필요, 월 참가자 5,000분 · 내려받기 50GB · 동시 100명 · 녹화 60분, 초과 시 과금 대신 차단, 계정 단위)으로 충분하다고 답함. 코드 변경 없이 유지
 - (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 실행: `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home LIVEKIT_URL=ws://localhost:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret ./gradlew bootRun`. 프론트 `npm run dev`(3000) · E2E는 `next start -p 3100`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
@@ -164,7 +182,7 @@
 - E2E: scratchpad `e2e/`(저장소 밖) — `pc-broadcast.mjs` · `mobile-broadcast.mjs` · `comments.mjs` · `ui-polish.mjs` · `review.mjs`(스크린샷). Postgres + 백엔드(8080) + `next start -p 3100` 후 `node <파일>`
 
 ## 다음 작업 (순서대로)
-1. **배포(#9)** — 호스팅 결정 필요(아래). 배포되면 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
+1. **배포 마무리(#9)** — ① 사용자가 LiveKit Cloud 키를 `heroku config:set -a onair-live-api LIVEKIT_URL=… LIVEKIT_API_KEY=… LIVEKIT_API_SECRET=…`로 직접 입력(채팅에 키를 붙이지 않음) ② LiveKit Cloud 웹훅 URL `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook` 등록 ③ 배포 PR 머지 → `dyno-schedule` 수동 실행으로 토큰 확인 ④ 운영 주소에서 PC · 휴대폰 송출 E2E. 그다음 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
 2. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료). 출처에 LiveKit · Pretendard(OFL-1.1) 포함
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조, **LIVE로 남은 방송 정리**(주기적으로 LiveKit에 방 · 방송자 존재 확인 → 없으면 ENDED, 웹훅 유실 대비 · 상태 관리 평가 항목)
 3. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
@@ -173,4 +191,4 @@
 - (11-05, 11-11 설치 확인됨) **pstack 플러그인** 사용 요청: `michael-denyer/pstack-claude`(MIT, v0.9.129, Cursor pstack의 Claude Code 이식). `/plugin` 명령은 Claude가 실행할 수 없어 사용자가 직접 설치 → 새 세션부터 `/poteto-mode`로 작업 라우팅. SessionStart · PreToolUse 훅이 모든 프로젝트에 적용됨. 설치되면 #6부터 pstack 흐름(poteto-mode)으로 진행하되 이 문서의 4단계 규칙 · 이슈/PR 흐름은 유지
 - 방송 중 제목 · 설명 수정 허용 여부(현재 허용)
 - ~~LiveKit Cloud 키~~ 11-12 완료. 토스페이먼츠 테스트 키는 #12 때
-- 백엔드 호스팅(EC2 대신, 오라클 · GCP 제외): 11-05 후보 제시 — Railway(추천: Spring + PostgreSQL 한 곳, HTTPS 자동, 슬립 없음, 월 약 $5) · Fly.io(도쿄 리전) · Render(무료는 슬립 · 무료 DB 30일 만료) · Heroku(사용자 경험 있음) · Lightsail/DigitalOcean/Vultr VPS(기존 Docker Compose 계획 그대로) · NCP. 프론트는 Vercel + `/api` rewrites 조합. **사용자 결정 대기**
+- ~~백엔드 호스팅~~ 11-12 Heroku로 결정 · 배포. (이전 기록) 11-05 후보 제시 — Railway(추천: Spring + PostgreSQL 한 곳, HTTPS 자동, 슬립 없음, 월 약 $5) · Fly.io(도쿄 리전) · Render(무료는 슬립 · 무료 DB 30일 만료) · Heroku(사용자 경험 있음) · Lightsail/DigitalOcean/Vultr VPS(기존 Docker Compose 계획 그대로) · NCP. 프론트는 Vercel + `/api` rewrites 조합. **사용자 결정 대기**

@@ -4,7 +4,7 @@ export function OwnerAvatar({ nickname, live = false }: { nickname: string; live
     <span
       aria-hidden
       className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${
-        live ? "bg-live/20 text-fg ring-2 ring-live/70" : "bg-surface-2 text-muted ring-1 ring-line"
+        live ? "bg-live text-white ring-4 ring-live/20" : "bg-surface text-muted ring-1 ring-line"
       }`}
     >
       {[...nickname.trim()][0] ?? "?"}

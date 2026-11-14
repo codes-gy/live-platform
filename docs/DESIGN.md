@@ -1,4 +1,4 @@
-# 설계 — 온에어(live-platform)
+# 설계 — 지이잉(live-platform)
 
 도메인 모델, 방송 상태, 권한, API, 주요 흐름과 결정 이유를 정리한다.
 시스템 구성과 코드 구조는 [`ARCHITECTURE.md`](ARCHITECTURE.md)를 본다.
