@@ -1,4 +1,4 @@
-# 아키텍처 — 온에어(live-platform)
+# 아키텍처 — 지이잉(live-platform)
 
 실시간 라이브 방송을 송출 · 시청하는 웹 서비스의 시스템 구성과 코드 구조를 정리한다.
 도메인 설계(상태 · 권한 · API · 흐름)는 [`DESIGN.md`](DESIGN.md), 요구사항별 진행 상태는 [`REQUIREMENTS.md`](REQUIREMENTS.md)를 본다.

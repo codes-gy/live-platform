@@ -2,8 +2,8 @@ import { STATUS_LABEL, type BroadcastStatus } from "@/lib/broadcast";
 
 const STYLE: Record<BroadcastStatus, string> = {
   LIVE: "bg-live text-white",
-  READY: "bg-surface-2 text-fg border border-line",
-  ENDED: "bg-black/60 text-muted",
+  READY: "bg-surface text-fg border border-line",
+  ENDED: "bg-fg/70 text-white",
 };
 
 export function StatusBadge({ status, className = "" }: { status: BroadcastStatus; className?: string }) {

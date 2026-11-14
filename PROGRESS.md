@@ -153,6 +153,15 @@
   - 백엔드 config: JWT_SECRET(무작위, 출력 안 함) · COOKIE_SECURE=true · CORS_ALLOWED_ORIGINS=프론트 주소 · TEST_ACCOUNTS_ENABLED=true · JAVA_TOOL_OPTIONS · SERVER_TOMCAT_THREADS_MAX. **LIVEKIT_* 미설정**
   - 확인: Flyway V1~V3 적용, health 200, 프론트 `/` · `/login` · `/api/broadcasts` 200, 테스트 로그인 쿠키 `Secure; HttpOnly; SameSite=Lax`, 방송 등록 · 삭제, **댓글 SSE가 Heroku + Next rewrite에서 버퍼링 없음**(즉시 `:connected`, 20초 `:ping`), start는 LiveKit 키 없어 503(예상대로)
 
+- [x] (11-12) #32 서비스 이름 "핏" · 토끼 파비콘 · 도메인: 브랜치 `feature/ui/#32-brand-pit`(PR #31 위에 쌓음), PR 생성 · 머지 대기. **배포 서버에는 이미 반영**
+  - 이름 후보를 여러 번 제안 · 겹침 검색(Cue는 해외 방송 서비스와 겹침, Tally는 설문 폼 서비스) 후 사용자가 "핏"으로 결정. 로고 · 탭 제목(`%s · 핏`) · README · 문서 제목 변경. Heroku 앱 이름(onair-live-*)은 유지
+  - 파비콘: `app/favicon.ico` 삭제 → `app/icon.svg`(흰 토끼 + 분홍 귀 · 볼 + 오른쪽 위 빨간 LIVE 점). 배포 HTML에 `<link rel="icon" href="/icon.svg…">` 확인
+  - 도메인: `heroku domains:add pit-live.kro.kr -a onair-live-web` → DNS 대상 `adjacent-rook-ze64mynua57li9kw25hozhw3.herokudns.com`(CNAME), ACM(자동 인증서) 켬. **사용자가 내도메인.한국에서 CNAME 등록 필요**(11-12 기준 아직 해석 안 됨). 백엔드 CORS에 새 주소 추가
+  - 로고: 깜빡이는 빨간 점 → 토끼 실루엣이 아래에서 빨갛게 차올랐다 비워지는 애니메이션(`Logo.tsx` clipPath + `logo-rabbit-fill` keyframes, 동작 줄이기 설정이면 멈춤). clipPath 안에 `<g>`를 넣으면 잘라내기 영역이 비어 채움이 안 보였음 → 도형을 직접 넣음
+  - **밝은 테마**(사용자 "왜 화면이 어둡지?"): 색 토큰만 바꿔 전 화면 전환(바탕 #f5f6f8 · 카드 흰색 · 글자 #15171c, 영상 자리만 검정), 메인 소개 카드(특징 칩 · 방송 시작하기 · 둘러보기), 카드 그림자 · 호버, 푸터. 배포 서버 반영
+  - 이름 최종 **"지이잉"**(11-12, 기계가 켜지는 소리 · 치지직 같은 의성어 계열). "핏"에서 변경: `layout.tsx` · `Logo.tsx` · `Footer.tsx` · `icon.svg` 주석 · README · 문서 제목. 도메인 `pit-live.kro.kr`은 이름과 안 맞음 → 사용자에게 새 도메인 여부 확인
+  - 백엔드용 `api.pit-live.kro.kr`은 필수 아님: 브라우저는 프론트의 `/api`만 부르고, 백엔드 주소가 필요한 곳은 LiveKit 웹훅뿐(herokuapp 주소로 충분)
+
 ## 현재 상태
 - (11-12) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. 운영 시간 예약은 PR 머지 후(기본 브랜치에서만 cron 동작)
 - (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 머지 완료(PR #29). 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
