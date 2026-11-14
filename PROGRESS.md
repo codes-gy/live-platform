@@ -169,8 +169,14 @@
   - 테스트 104개 통과(`LiveReconcileTest` 7: 방송자 없음 → 종료 · 방 삭제, 있음 → 유지, 유예 안 복귀 → 유지, 막 시작 → 유지, LiveKit 실패 → 유지, deleteRoom 실패해도 ENDED, READY/ENDED 무시). 테스트는 주기 1h로 타이머 끔
   - **실제 LiveKit Cloud 확인**: 주기 5s로 띄우고 방송자 없이 start → 63초 뒤 ENDED(시작 유예 30 + 주기 ≤5 + 재확인 30). 로컬은 웹훅이 없고 LiveKit 빈 방 정리는 2분이라 정리 작업이 끝낸 것
 
+- [x] (11-14) #9 배포 절차서 · LiveKit 키 설정 스크립트: 브랜치 `chore/deploy/#9-deploy-guide`(WSL PC 세션), PR 대기
+  - `docs/DEPLOY.md`: 준비물, 운영 설정 표(값 없이), LiveKit 키 · 웹훅 등록, 배포 명령과 언제 api/web을 배포하는지, 배포 후 확인(서버 · 기능 8단계 · 운영 시간 수동 on/off), 되돌리기(`releases:rollback`, 마이그레이션 주의), 남은 일 체크리스트. ARCHITECTURE 5절에서 링크, 6절 고정 설정에 `reconcile-interval` 추가
+  - `scripts/heroku-livekit-config.sh [.env]`: `.env`의 LIVEKIT 3개를 `heroku config:set`으로 넣고 값은 출력 안 함. 빈 값 · `ws://`(로컬 주소) · 파일 없음이면 안내 후 중단(세 경로 실행 확인, 처음엔 `set -e` + grep 무일치로 안내 없이 종료되던 것을 수정). 성공 경로는 운영 변경이라 실행 안 함
+  - 11-14 PR 정리: #31 머지 때 브랜치 삭제로 위에 쌓인 #33이 자동으로 닫힘 → 브랜치 복구 · 재오픈 · 대상 develop으로 변경 · 닫았다 열어 CI 실행 → 머지. #35는 PROGRESS 충돌을 develop 병합으로 해결(양쪽 항목 유지) 후 머지. **쌓인 PR은 아래 PR부터 대상 브랜치를 develop으로 바꾼 뒤 머지할 것**
+
 ## 현재 상태
-- (11-12) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. 운영 시간 예약은 PR 머지 후(기본 브랜치에서만 cron 동작)
+- (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
+- (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
 - (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 머지 완료(PR #29). 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
 - (11-12) 비용: 사용자가 LiveKit 비용을 문의 → Cloud 무료 Build 플랜(카드 불필요, 월 참가자 5,000분 · 내려받기 50GB · 동시 100명 · 녹화 60분, 초과 시 과금 대신 차단, 계정 단위)으로 충분하다고 답함. 코드 변경 없이 유지
 - (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 실행: `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home LIVEKIT_URL=ws://localhost:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret ./gradlew bootRun`. 프론트 `npm run dev`(3000) · E2E는 `next start -p 3100`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
@@ -182,7 +188,7 @@
 - E2E: scratchpad `e2e/`(저장소 밖) — `pc-broadcast.mjs` · `mobile-broadcast.mjs` · `comments.mjs` · `ui-polish.mjs` · `review.mjs`(스크린샷). Postgres + 백엔드(8080) + `next start -p 3100` 후 `node <파일>`
 
 ## 다음 작업 (순서대로)
-1. **배포 마무리(#9)** — ① 사용자가 LiveKit Cloud 키를 `heroku config:set -a onair-live-api LIVEKIT_URL=… LIVEKIT_API_KEY=… LIVEKIT_API_SECRET=…`로 직접 입력(채팅에 키를 붙이지 않음) ② LiveKit Cloud 웹훅 URL `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook` 등록 ③ 배포 PR 머지 → `dyno-schedule` 수동 실행으로 토큰 확인 ④ 운영 주소에서 PC · 휴대폰 송출 E2E. 그다음 실제 휴대폰으로 #8 확인(송출 · 후면 전환 · 앱 전환 복구 · 다른 기기 시청), PC Chrome 탭 오디오, 댓글 SSE가 호스팅 프록시에서 버퍼링되지 않는지 확인. LiveKit Cloud 웹훅 URL 등록
+1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료). 출처에 LiveKit · Pretendard(OFL-1.1) 포함
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조, **LIVE로 남은 방송 정리**(주기적으로 LiveKit에 방 · 방송자 존재 확인 → 없으면 ENDED, 웹훅 유실 대비 · 상태 관리 평가 항목)
 3. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
