@@ -43,4 +43,6 @@ app:
     empty-timeout: 2m
     departure-timeout: 1m
     broadcaster-grace: 30s
+    # 웹훅이 유실돼 LIVE로 남은 방송을 찾는 주기(LiveReconcileScheduler)
+    reconcile-interval: 1m
     token-ttl: 1h

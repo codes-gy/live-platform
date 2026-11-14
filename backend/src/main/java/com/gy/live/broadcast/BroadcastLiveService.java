@@ -12,7 +12,10 @@ import com.gy.live.livekit.LiveKitTokenIssuer;
 import com.gy.live.livekit.RoomNames;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,6 +45,7 @@ public class BroadcastLiveService {
 	private final TaskScheduler scheduler;
 	private final Duration broadcasterGrace;
 	private final ApplicationEventPublisher events;
+	private final Set<Long> recheckPending = ConcurrentHashMap.newKeySet();
 
 	public BroadcastLiveService(BroadcastService broadcastService, BroadcastRepository broadcastRepository,
 			LiveKitRoomClient roomClient, LiveKitTokenIssuer tokenIssuer, TransactionTemplate tx,
@@ -128,6 +132,41 @@ public class BroadcastLiveService {
 		}
 		RoomNames.broadcastIdOf(roomName).ifPresent(id ->
 				scheduler.schedule(() -> endIfBroadcasterGone(id, identity), Instant.now().plus(broadcasterGrace)));
+	}
+
+	/**
+	 * 웹훅이 유실돼도(로컬은 웹훅 없음, 운영은 야간 dyno 정지) LIVE로 남은 방송을 정리한다.
+	 * 방송자가 방에 없으면 새로고침일 수 있으니 바로 끝내지 않고, 유예 시간 뒤 다시 확인해서도 없을 때만 끝낸다.
+	 * 상태는 DB(startedAt)와 LiveKit에서만 읽으므로 재시작해도 다음 주기에 다시 찾아낸다.
+	 * LiveKit을 못 부르면 그 실행은 접고 아무것도 끝내지 않는다.
+	 */
+	public void reconcileLive() {
+		Instant startedBefore = Instant.now().minus(broadcasterGrace);
+		for (LiveBroadcastRef live : broadcastRepository.findLiveStartedBefore(startedBefore)) {
+			try {
+				if (roomClient.hasParticipant(RoomNames.of(live.id()), RoomNames.broadcasterIdentity(live.ownerId()))) {
+					continue;
+				}
+			} catch (RuntimeException e) {
+				log.warn("LIVE 방송 정리 중단: LiveKit 확인 실패", e);
+				return;
+			}
+			scheduleRecheck(live);
+		}
+	}
+
+	private void scheduleRecheck(LiveBroadcastRef live) {
+		if (!recheckPending.add(live.id())) {
+			return;
+		}
+		String identity = RoomNames.broadcasterIdentity(live.ownerId());
+		scheduler.schedule(() -> {
+			try {
+				endIfBroadcasterGone(live.id(), identity);
+			} finally {
+				recheckPending.remove(live.id());
+			}
+		}, Instant.now().plus(broadcasterGrace));
 	}
 
 	void endIfBroadcasterGone(Long broadcastId, String identity) {

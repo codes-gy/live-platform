@@ -1,5 +1,7 @@
 package com.gy.live.broadcast;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,4 +44,9 @@ public interface BroadcastRepository extends JpaRepository<Broadcast, Long> {
 	@Lock(LockModeType.PESSIMISTIC_READ)
 	@Query("select b from Broadcast b where b.id = :id")
 	Optional<Broadcast> findForShareById(@Param("id") Long id);
+
+	/** 정리 대상: 시작한 지 유예 시간이 지난 LIVE 방송. 방송자 확인에 필요한 값만 읽는다. */
+	@Query("select new com.gy.live.broadcast.LiveBroadcastRef(b.id, b.owner.id) from Broadcast b "
+			+ "where b.status = com.gy.live.broadcast.BroadcastStatus.LIVE and b.startedAt < :startedBefore")
+	List<LiveBroadcastRef> findLiveStartedBefore(@Param("startedBefore") Instant startedBefore);
 }

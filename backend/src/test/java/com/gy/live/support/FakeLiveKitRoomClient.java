@@ -15,6 +15,7 @@ public class FakeLiveKitRoomClient implements LiveKitRoomClient {
 	private final Set<String> participants = ConcurrentHashMap.newKeySet();
 	public volatile boolean failCreate;
 	public volatile boolean failDelete;
+	public volatile boolean failHasParticipant;
 
 	public void reset() {
 		createdRooms.clear();
@@ -22,6 +23,11 @@ public class FakeLiveKitRoomClient implements LiveKitRoomClient {
 		participants.clear();
 		failCreate = false;
 		failDelete = false;
+		failHasParticipant = false;
+	}
+
+	public void leave(String roomName, String identity) {
+		participants.remove(roomName + "/" + identity);
 	}
 
 	public void join(String roomName, String identity) {
@@ -46,6 +52,9 @@ public class FakeLiveKitRoomClient implements LiveKitRoomClient {
 
 	@Override
 	public boolean hasParticipant(String roomName, String identity) {
+		if (failHasParticipant) {
+			throw new LiveKitException("가짜 실패");
+		}
 		return participants.contains(roomName + "/" + identity);
 	}
 }

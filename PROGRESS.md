@@ -145,7 +145,7 @@
   - 확인: lint · tsc · build 통과. 회귀 E2E 댓글 22개 · 송출 34개 통과. 새 E2E 15개 통과(scratchpad `e2e/ui-polish.mjs`): 글꼴 로드 · keep-all, 시작 비활성 안내, 스튜디오 댓글 패널, 음량 막대 움직임, 시청자 수 스튜디오 · 플레이어 2명 → 1명 나가면 1명, 시청자 댓글이 스튜디오에 실시간 도착 · 방송자 삭제 → 시청자 화면에서 제거, 카드 제목 1회 · 캡션, 종료 "1분 미만", 휴대폰 가로 넘침 0. E2E가 카드 시간 중복("방금 시작" 2번)을 잡아 수정
   - 문서: `DESIGN.md` 6.2 · 9절, `ARCHITECTURE.md` 프론트 트리, `REQUIREMENTS.md` #28 출처
 
-- [x] (11-12) #9 배포(Heroku): 브랜치 `chore/deploy/#9-heroku`, PR 생성 · 머지 대기
+- [x] (11-12) #9 배포(Heroku): 브랜치 `chore/deploy/#9-heroku`, PR #31 develop 머지 완료(11-14, 이슈 #9는 운영 송출 확인 뒤 닫음)
   - 사용자 결정: GitHub 학생 크레딧(Heroku $312 / 24개월, 잔액 $298.25, 2028-08-31 만료)으로 Heroku에 전부 배포. 기존 앱 `mundansok` · `welive-backend` 삭제(사용자 확인, config vars 포함). **운영 시간 09~20시 KST**(사용자 선택, 접속 불가 감점 위험은 고지함)
   - 앱: `onair-live-web`(https://onair-live-web-28fc2f0d1715.herokuapp.com) · `onair-live-api`(https://onair-live-api-daf462a2a9af.herokuapp.com), 컨테이너 스택 · US · Basic 다이노, `heroku-postgresql:essential-0`(PostgreSQL, 최대 $5/월). 예상 약 $11/월(다이노 11시간/일)
   - 파일: `backend/Dockerfile`(temurin 25 jdk 빌드 → jre 실행) · `backend/docker-entrypoint.sh`(DATABASE_URL → JDBC, sslmode=require) · `frontend/Dockerfile`(node 24, standalone, `BACKEND_URL` 빌드 인자) · `scripts/deploy-heroku.sh [api|web|all]` · `.github/workflows/dyno-schedule.yml`(cron 0 0 / 0 11 UTC, 수동 on/off, 시크릿 `HEROKU_API_KEY` = write 범위 전용 authorization). `application.yaml` `server.port: ${PORT:8080}`, `next.config.ts` `output: "standalone"`
@@ -153,7 +153,7 @@
   - 백엔드 config: JWT_SECRET(무작위, 출력 안 함) · COOKIE_SECURE=true · CORS_ALLOWED_ORIGINS=프론트 주소 · TEST_ACCOUNTS_ENABLED=true · JAVA_TOOL_OPTIONS · SERVER_TOMCAT_THREADS_MAX. **LIVEKIT_* 미설정**
   - 확인: Flyway V1~V3 적용, health 200, 프론트 `/` · `/login` · `/api/broadcasts` 200, 테스트 로그인 쿠키 `Secure; HttpOnly; SameSite=Lax`, 방송 등록 · 삭제, **댓글 SSE가 Heroku + Next rewrite에서 버퍼링 없음**(즉시 `:connected`, 20초 `:ping`), start는 LiveKit 키 없어 503(예상대로)
 
-- [x] (11-12) #32 서비스 이름 "핏" · 토끼 파비콘 · 도메인: 브랜치 `feature/ui/#32-brand-pit`(PR #31 위에 쌓음), PR 생성 · 머지 대기. **배포 서버에는 이미 반영**
+- [x] (11-12) #32 서비스 이름 "핏" · 토끼 파비콘 · 도메인: 브랜치 `feature/ui/#32-brand-pit`(PR #31 위에 쌓음), PR #33 develop 머지 완료(11-14)
   - 이름 후보를 여러 번 제안 · 겹침 검색(Cue는 해외 방송 서비스와 겹침, Tally는 설문 폼 서비스) 후 사용자가 "핏"으로 결정. 로고 · 탭 제목(`%s · 핏`) · README · 문서 제목 변경. Heroku 앱 이름(onair-live-*)은 유지
   - 파비콘: `app/favicon.ico` 삭제 → `app/icon.svg`(흰 토끼 + 분홍 귀 · 볼 + 오른쪽 위 빨간 LIVE 점). 배포 HTML에 `<link rel="icon" href="/icon.svg…">` 확인
   - 도메인: `heroku domains:add pit-live.kro.kr -a onair-live-web` → DNS 대상 `adjacent-rook-ze64mynua57li9kw25hozhw3.herokudns.com`(CNAME), ACM(자동 인증서) 켬. **사용자가 내도메인.한국에서 CNAME 등록 필요**(11-12 기준 아직 해석 안 됨). 백엔드 CORS에 새 주소 추가
@@ -161,6 +161,13 @@
   - **밝은 테마**(사용자 "왜 화면이 어둡지?"): 색 토큰만 바꿔 전 화면 전환(바탕 #f5f6f8 · 카드 흰색 · 글자 #15171c, 영상 자리만 검정), 메인 소개 카드(특징 칩 · 방송 시작하기 · 둘러보기), 카드 그림자 · 호버, 푸터. 배포 서버 반영
   - 이름 최종 **"지이잉"**(11-12, 기계가 켜지는 소리 · 치지직 같은 의성어 계열). "핏"에서 변경: `layout.tsx` · `Logo.tsx` · `Footer.tsx` · `icon.svg` 주석 · README · 문서 제목. 도메인 `pit-live.kro.kr`은 이름과 안 맞음 → 사용자에게 새 도메인 여부 확인
   - 백엔드용 `api.pit-live.kro.kr`은 필수 아님: 브라우저는 프론트의 `/api`만 부르고, 백엔드 주소가 필요한 곳은 LiveKit 웹훅뿐(herokuapp 주소로 충분)
+
+- [x] (11-13) #34 LIVE로 남은 방송 주기적 정리: 브랜치 `feature/live/#34-live-reconcile`(WSL PC 세션, 하위 세션 구현 · 메인 세션 검토), PR #35
+  - 이유: 웹훅 유실(로컬은 웹훅 없음, Heroku 야간 정지 중 웹훅 · 메모리 유예 작업 소실) 시 방송이 영원히 LIVE로 남음 → 방송 상태 관리 평가 항목
+  - `LiveReconcileScheduler`(`@Scheduled` fixedDelay · initialDelay = `app.livekit.reconcile-interval`, 기본 1m, `@EnableScheduling`은 `LiveKitConfig`) → `BroadcastLiveService.reconcileLive()`: 시작한 지 유예(30s)가 지난 LIVE 방송(`findLiveStartedBefore`)마다 LiveKit에 방송자 있는지 확인 → 없으면 유예 뒤 다시 확인(기존 `endIfBroadcasterGone`)해서도 없을 때만 ENDED(`endLocked` 한 곳, 댓글 SSE `ended` 발행) + 방 닫기. 방송별 재확인 예약은 하나만(`recheckPending`). LiveKit 호출 실패 시 그 회차 중단(아무것도 안 끝냄)
+  - 상태는 DB · LiveKit에서만 읽어 재시작 후에도 다음 주기에 다시 찾음. 새로고침(유예 안 복귀)은 종료 안 됨
+  - 테스트 104개 통과(`LiveReconcileTest` 7: 방송자 없음 → 종료 · 방 삭제, 있음 → 유지, 유예 안 복귀 → 유지, 막 시작 → 유지, LiveKit 실패 → 유지, deleteRoom 실패해도 ENDED, READY/ENDED 무시). 테스트는 주기 1h로 타이머 끔
+  - **실제 LiveKit Cloud 확인**: 주기 5s로 띄우고 방송자 없이 start → 63초 뒤 ENDED(시작 유예 30 + 주기 ≤5 + 재확인 30). 로컬은 웹훅이 없고 LiveKit 빈 방 정리는 2분이라 정리 작업이 끝낸 것
 
 ## 현재 상태
 - (11-12) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. 운영 시간 예약은 PR 머지 후(기본 브랜치에서만 cron 동작)

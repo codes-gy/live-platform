@@ -15,7 +15,9 @@ import org.springframework.context.annotation.Import;
 		"app.livekit.url=wss://test.livekit.cloud",
 		"app.livekit.api-key=" + IntegrationTest.LIVEKIT_KEY,
 		"app.livekit.api-secret=" + IntegrationTest.LIVEKIT_SECRET,
-		"app.livekit.broadcaster-grace=200ms"
+		"app.livekit.broadcaster-grace=200ms",
+		// 타이머는 테스트 중 돌지 않게 하고, 정리는 reconcileLive()를 직접 불러 확인한다
+		"app.livekit.reconcile-interval=1h"
 })
 @AutoConfigureMockMvc
 @Import({TestcontainersConfig.class, FakeLiveKitConfig.class})
