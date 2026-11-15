@@ -43,11 +43,11 @@
 | # | 항목 | 상태 | 비고 |
 |---|---|---|---|
 | 23 | 서비스 주소(실제 접속 가능한 URL) | 🟡 | Heroku 배포(#9): https://onair-live-web-28fc2f0d1715.herokuapp.com, 운영 09~20시(KST). LiveKit 키 설정 전이라 송출은 아직 503 |
-| 24 | 테스트 계정 또는 테스트 로그인 기능과 사용법 | 🟡 | 기능 완료(`streamer@test.com` · `viewer@test.com` / `test1234!`, 로그인 화면 버튼). README 기재 필요 |
-| 25 | 실행 방법: 실행 환경 · 환경변수 예시 | 🟡 | `.env.example` 있음. README 초안(45줄)을 #14에서 완성 |
-| 26 | 기능 확인: PC · 모바일 송출 · 시청 · 종료 방법과 지원 환경 | ⬜ | #14. 시스템 소리는 Windows Chrome/Edge만 지원 등 명시 |
+| 24 | 테스트 계정 또는 테스트 로그인 기능과 사용법 | ✅ | `streamer@test.com` · `viewer@test.com` / `test1234!`, 로그인 화면 버튼. README "테스트 계정" 절(#14) |
+| 25 | 실행 방법: 실행 환경 · 환경변수 예시 | ✅ | README "로컬 실행 방법"(요구 사항 · 환경변수 표 · 로컬 LiveKit · 테스트), `.env.example` (#14) |
+| 26 | 기능 확인: PC · 모바일 송출 · 시청 · 종료 방법과 지원 환경 | ✅ | README "기능 확인 방법" · "지원 환경"(#14). 운영 송출은 LiveKit 키 등록 후 |
 | 27 | **시연 영상 링크(필수)**: PC · 모바일 송출 · 시청 · 종료 과정 | ⬜ | #7 · #8 · #9 완료 후 촬영 |
-| 28 | 오픈소스 · 기존 코드 출처 명시 | ⬜ | LiveKit · Pretendard(OFL-1.1, #28) 등 README에 기재 |
+| 28 | 오픈소스 · 기존 코드 출처 명시 | ✅ | README "오픈소스 및 출처"(LiveKit · Pretendard OFL-1.1 등, #14) |
 | 29 | 민감 정보 미포함 | ✅ | `.env`는 gitignore, 예시는 `.env.example` |
 | 30 | 공개 저장소, 제출 시 `main` 반영 | 🟡 | 저장소 public. 제출 전에 develop → main |
 
