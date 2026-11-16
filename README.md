@@ -4,8 +4,8 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 
 | | |
 |---|---|
-| 서비스 주소 | https://onair-live-web-28fc2f0d1715.herokuapp.com |
-| 운영 시간 | 매일 **오전 9시 ~ 오후 8시 (KST)** — 그 외 시간에는 서버를 내려 둡니다(비용 절감). 첫 접속은 서버 기동으로 10초 정도 걸릴 수 있습니다 |
+| 서비스 주소 | **https://jiing-live.tail00a238.ts.net** |
+| 운영 | 상시 운영(자체 호스팅). 접속이 안 되면 이슈로 알려 주세요 |
 | 시연 영상 | _(링크 추가 예정)_ |
 | 테스트 계정 | 아래 [테스트 계정](#테스트-계정) 참고 — 로그인 화면의 버튼 한 번으로 로그인 |
 
@@ -96,7 +96,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | Streaming | LiveKit (WebRTC SFU) — `livekit-client`, `@livekit/components-react`, `livekit-server` Java SDK |
 | Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 104개 |
-| Infra | Heroku(컨테이너 · Postgres), GitHub Actions(CI · 운영 시간 예약), LiveKit Cloud |
+| Infra | Docker Compose 자체 호스팅 + Tailscale Funnel(HTTPS), GitHub Actions(CI), LiveKit Cloud |
 
 ## 구조
 
@@ -171,18 +171,19 @@ cd frontend && npm run lint && npm run build
 
 백엔드 테스트는 비로그인 · 소유자 · 다른 사용자별 허용/거절, 상태 전이, 웹훅 서명 위조 · 중복, 방송자 이탈 유예, 주기 정리, 댓글 권한 · SSE를 검증합니다. LiveKit 호출은 테스트용 가짜 구현(`FakeLiveKitRoomClient`)으로 대체합니다. PR마다 GitHub Actions(`.github/workflows/ci.yml`)가 같은 검사를 실행합니다.
 
-### 배포 (Heroku)
+### 운영 배포 (자체 호스팅)
 ```bash
-scripts/deploy-heroku.sh [api|web|all]     # docker · heroku CLI 로그인 필요
+cp .env.prod.example .env.prod             # DB 비밀번호 · JWT 비밀 키 · LiveKit 키 입력
+scripts/self-host.sh up                    # DB · 백엔드 · 프론트 빌드/시작 + Tailscale Funnel로 HTTPS 공개
 ```
-운영 시간 예약은 `.github/workflows/dyno-schedule.yml`(09시 켜기 · 20시 끄기 KST)이 담당합니다. LiveKit 키 등록 · 배포 · 확인 · 되돌리기 순서는 [`docs/DEPLOY.md`](docs/DEPLOY.md)를 참고하세요.
+Docker와 Tailscale(로그인 · Funnel 허용)만 있으면 어느 PC · 서버에서도 같은 명령으로 운영 환경을 띄울 수 있습니다. 자세한 순서와 확인 방법은 [`docs/DEPLOY.md`](docs/DEPLOY.md)를 참고하세요.
 
 ## 외부 서비스 의존과 대안
 
 | 서비스 | 역할 | 대체 방법 |
 |---|---|---|
 | LiveKit Cloud | 영상 · 음성 중계(SFU) | LiveKit 서버는 오픈소스(Apache-2.0)라 직접 운영할 수 있습니다. `docker-compose.yml`의 `livekit` 서비스와 같은 이미지를 UDP 포트가 열린 서버에 띄우고 `LIVEKIT_*` 값만 바꾸면 코드 변경 없이 옮겨집니다 |
-| Heroku | 프론트 · 백엔드 · DB 호스팅 | 둘 다 Dockerfile이 있어 Docker를 돌릴 수 있는 어느 서버로도 옮길 수 있습니다 |
+| Tailscale Funnel | 운영 PC를 HTTPS 주소로 공개 | 프론트 하나(`127.0.0.1:3300`)만 공개하면 되므로 Cloudflare named tunnel · Nginx + Let's Encrypt 등 어떤 리버스 프록시로도 바꿀 수 있습니다 |
 
 ## 알려진 한계
 - 방송자 이탈 유예와 댓글 SSE 구독은 서버 메모리에 있어 **서버 1대** 기준입니다(여러 대면 Redis pub/sub 필요). 유예 예약이 재시작으로 사라져도 1분 주기 점검이 정리합니다.

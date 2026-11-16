@@ -1,19 +1,56 @@
-# 배포 절차 (Heroku)
+# 배포 절차
 
-운영 구성과 그렇게 정한 이유는 [ARCHITECTURE.md 5절](ARCHITECTURE.md#5-배포-구성-9)에 있다. 이 문서는 배포하고 확인하는 순서만 다룬다.
+운영 구성과 그렇게 정한 이유는 [ARCHITECTURE.md 5절](ARCHITECTURE.md#5-배포-구성)에 있다. 이 문서는 띄우고 확인하는 순서만 다룬다.
+
+## 1. 현재 운영: 자체 호스팅 (2026-11-16~)
+
+| 항목 | 값 |
+|---|---|
+| 서비스 주소 | https://jiing-live.tail00a238.ts.net |
+| 구성 | 개발자 PC(Windows · Docker Desktop)에서 `docker-compose.prod.yml`(PostgreSQL · Spring · Next.js) + Tailscale Funnel(HTTPS 공개) |
+| 미디어 | LiveKit Cloud (영상 · 음성은 이 PC를 거치지 않는다) |
+
+### 1.1 준비물
+- Docker Desktop
+- Tailscale 설치 · 로그인, 관리 콘솔에서 **Funnel 허용**(처음 `tailscale funnel` 실행 시 안내 링크가 나온다)
+- `.env.prod` — `.env.prod.example`을 복사해 DB 비밀번호 · JWT 비밀 키(무작위) · LiveKit 키를 채운다. 커밋하지 않는다
+
+### 1.2 시작 · 중지
+```bash
+scripts/self-host.sh up     # 빌드 → 시작 → Funnel 공개 → PUBLIC_URL(CORS) 자동 반영
+scripts/self-host.sh url    # 공개 주소
+scripts/self-host.sh logs   # 백엔드 로그
+scripts/self-host.sh down   # Funnel 해제 + 중지 (DB 볼륨 jiing_pgdata는 유지)
+```
+- 컨테이너는 `restart: unless-stopped`라 Docker Desktop이 켜지면 다시 뜬다. Funnel 설정도 Tailscale이 기억한다.
+- 코드를 바꾼 뒤에는 `scripts/self-host.sh up`을 다시 실행하면 바뀐 이미지만 다시 만든다. DB는 그대로다.
+- 프론트는 `127.0.0.1:3300`에만 열린다(같은 네트워크의 다른 기기도 직접 접근 불가). 백엔드 · DB는 호스트 포트를 열지 않는다.
+- PC가 절전 · 종료되면 서비스가 멈춘다. 심사 기간에는 절전을 끈다.
+
+### 1.3 LiveKit 웹훅
+LiveKit Cloud 대시보드 → Settings → Webhooks에 `https://jiing-live.tail00a238.ts.net/api/livekit/webhook`을 등록한다(서명 키는 `.env.prod`의 API 키). 없어도 주기적 정리(#34)가 1~2분 안에 남은 방송을 끝낸다.
+
+### 1.4 확인 (11-16 실행 결과)
+- API: 테스트 로그인(쿠키 `Secure`) · 방송 등록 · **실제 LiveKit Cloud로 시작 → LIVE** · 비로그인 시청 토큰 · 다른 사용자 종료 403 · 소유자 종료 ENDED · 삭제 204
+- 브라우저(Playwright, 가짜 카메라 · 마이크): 방송자 로그인 → 카메라 송출 → 비로그인 시청자 영상 수신 · 오디오 → 종료 → 시청 화면 종료 표시
+- 처음 시도한 Cloudflare 임시 터널(`*.trycloudflare.com`)은 **SSE를 지원하지 않아**(공식 문서 명시, 실제로 45초간 이벤트 0개) 댓글 실시간 전송이 멈췄고, 재시작마다 주소가 바뀌어 Tailscale Funnel로 바꿨다
+
+## 2. 이전 운영: Heroku (2026-11-12 ~ 11-16, 중단)
+
+11-14에 운영 DB(Heroku Postgres)가 분리 · 삭제된 것을 11-16에 발견했고, 사용자 결정으로 Heroku 대신 자체 호스팅으로 옮겼다. 운영 시간 예약 워크플로(`dyno-schedule.yml`)는 꺼 두었다. 아래는 다시 Heroku로 올릴 때를 위한 기록이다.
 
 | 앱 | 주소 | 이미지 |
 |---|---|---|
 | `onair-live-web` (프론트) | https://onair-live-web-28fc2f0d1715.herokuapp.com | `frontend/Dockerfile` |
 | `onair-live-api` (백엔드) | https://onair-live-api-daf462a2a9af.herokuapp.com | `backend/Dockerfile` |
 
-## 1. 준비물
+### 2.1 준비물
 
 - `heroku login`으로 로그인한 Heroku CLI
 - Docker와 buildx. WSL에서는 Docker Desktop의 WSL integration을 켜야 `docker` 명령이 잡힌다.
 - 루트 `.env`의 LiveKit Cloud 키 3개(`LIVEKIT_URL` · `LIVEKIT_API_KEY` · `LIVEKIT_API_SECRET`). `.env`는 커밋하지 않는다.
 
-## 2. 운영 설정
+### 2.2 운영 설정
 
 이미 들어가 있는 값(11-12):
 
@@ -32,7 +69,7 @@
 heroku config -a onair-live-api --json | node -e 'console.log(Object.keys(JSON.parse(require("fs").readFileSync(0))).join("\n"))'
 ```
 
-### 2.1 LiveKit 키 넣기
+#### LiveKit 키 넣기
 
 ```bash
 scripts/heroku-livekit-config.sh
@@ -40,15 +77,15 @@ scripts/heroku-livekit-config.sh
 
 `.env`에서 키를 읽어 `onair-live-api`에 넣고 값은 출력하지 않는다. 설정이 바뀌면 백엔드가 재시작된다. 키가 없으면 송출 · 시청 API가 503 `LIVEKIT_NOT_CONFIGURED`를 돌려준다.
 
-### 2.2 LiveKit 웹훅 등록
+#### LiveKit 웹훅 등록
 
 1. LiveKit Cloud 대시보드에서 프로젝트 → **Settings** → **Webhooks**로 간다.
 2. URL에 `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`을 넣는다.
-3. 서명 키는 2.1에서 넣은 것과 같은 API 키를 고른다. 다른 키로 서명하면 서버가 401 `INVALID_WEBHOOK`으로 거절한다.
+3. 서명 키는 "LiveKit 키 넣기"에서 넣은 것과 같은 API 키를 고른다. 다른 키로 서명하면 서버가 401 `INVALID_WEBHOOK`으로 거절한다.
 
 웹훅이 없어도 방송은 된다. 다만 방송자가 탭을 그냥 닫았을 때 종료되기까지 더 오래 걸린다. 웹훅이 있으면 30초 뒤, 없으면 주기적 정리 작업(#34)이 약 1~2분 뒤에 종료한다.
 
-## 3. 배포
+### 2.3 배포
 
 ```bash
 scripts/deploy-heroku.sh api   # 백엔드만
@@ -59,11 +96,11 @@ scripts/deploy-heroku.sh all   # 둘 다 (api → web 순서)
 - 백엔드 코드나 DB 마이그레이션이 바뀌면 `api`를 배포한다. Flyway가 시작할 때 마이그레이션을 적용한다.
 - 프론트 코드가 바뀌거나 백엔드 주소가 바뀌면 `web`을 배포한다. `BACKEND_URL`은 빌드할 때 이미지에 들어가므로, 백엔드 주소를 바꾸면 프론트를 다시 빌드해야 한다.
 - 배포는 develop에 머지된 코드로만 한다. 배포 전에 `git switch develop && git pull`로 최신 상태를 받는다.
-- 다이노가 꺼진 시간(20:00~09:00 KST)에 배포하면 release는 되지만 서버는 켜지지 않는다. 확인하려면 4.3의 명령으로 켠다.
+- 다이노가 꺼진 시간(20:00~09:00 KST)에 배포하면 release는 되지만 서버는 켜지지 않는다. 확인하려면 "운영 시간"의 명령으로 켠다.
 
-## 4. 배포 후 확인
+### 2.4 배포 후 확인
 
-### 4.1 서버
+#### 서버
 
 ```bash
 curl -s https://onair-live-api-daf462a2a9af.herokuapp.com/actuator/health   # {"status":"UP"}
@@ -71,10 +108,10 @@ curl -s -o /dev/null -w "%{http_code}\n" https://onair-live-web-28fc2f0d1715.her
 heroku logs -a onair-live-api --tail   # 시작 오류 · R14(메모리 초과) 확인
 ```
 
-### 4.2 기능
+#### 기능
 
 1. 테스트 계정 STREAMER로 로그인해 방송을 만든다.
-2. PC Chrome에서 송출 화면을 열고 화면과 "탭 오디오 공유"를 고른 뒤 방송을 시작한다. 503이 나오면 2.1을 다시 확인한다.
+2. PC Chrome에서 송출 화면을 열고 화면과 "탭 오디오 공유"를 고른 뒤 방송을 시작한다. 503이 나오면 "LiveKit 키 넣기"를 다시 확인한다.
 3. 휴대폰(다른 기기)에서 비로그인으로 방송 상세를 열어 영상과 소리가 나오는지 본다.
 4. 휴대폰에서 STREAMER로 로그인해 카메라 송출을 시작하고 PC에서 시청한다. 후면 카메라 전환도 확인한다.
 5. 댓글을 쓰고 상대 화면에 바로 뜨는지 본다.
@@ -82,7 +119,7 @@ heroku logs -a onair-live-api --tail   # 시작 오류 · R14(메모리 초과) 
 7. 다시 방송을 시작한 뒤 송출 탭을 닫는다. 30초 정도 뒤 방송 목록에서 종료로 바뀌면 웹훅이 동작하는 것이다.
 8. 시험 방송을 삭제한다.
 
-### 4.3 운영 시간
+#### 운영 시간
 
 GitHub Actions `Heroku 운영 시간`(`.github/workflows/dyno-schedule.yml`)이 매일 09:00에 켜고 20:00에 끈다(KST). 직접 켜고 끄려면:
 
@@ -93,7 +130,7 @@ gh workflow run dyno-schedule.yml -f action=off
 
 심사 기간에 24시간 접속이 필요하면 워크플로를 끈다(`gh workflow disable dyno-schedule.yml`). 이때는 비용이 늘어난다.
 
-## 5. 되돌리기
+### 2.5 되돌리기
 
 ```bash
 heroku releases -a onair-live-api            # 배포 이력
@@ -102,7 +139,7 @@ heroku releases:rollback v<번호> -a onair-live-api
 
 설정(`config:set`)도 release를 하나 만든다. 되돌릴 때 설정까지 이전 값으로 돌아가는지 확인한다. DB 마이그레이션은 되돌아가지 않으므로, 스키마를 바꾼 배포는 롤백하기 전에 호환되는지 본다.
 
-## 6. 남은 일
+### 2.6 남은 일 (중단 시점)
 
 - [ ] 2.1 LiveKit 키 넣기
 - [ ] 2.2 웹훅 등록
