@@ -179,6 +179,16 @@
   - README의 버튼 이름은 실제 컴포넌트 문구와 대조해 맞춤(방송 시작하기 · 송출 화면 · 화면 선택 · 마이크 켜기 · 카메라 켜기 · 전면/후면 전환 · 화면 바꾸기 · 방송 재개 · 눌러서 소리 켜기)
   - `REQUIREMENTS.md` 24 · 25 · 26 · 28 → ✅. 남은 README 빈칸: **시연 영상 링크**(촬영 후), 선택 기능을 구현하면 "알려진 한계"의 "도네이션 · 녹화 미구현" 문장 수정
 
+- [~] (11-16) **운영을 Heroku → 자체 호스팅으로 전환**: 브랜치 `chore/deploy/self-host-tunnel`(README 브랜치 위에 쌓음), 로컬 커밋 68e7ea5 · **push · PR 전**
+  - 발견: Heroku `onair-live-api`의 Postgres가 **11-14 03:08 UTC 분리 · 삭제**(release v8 "Detach DATABASE", 애드온 0개) → 운영 백엔드 기동 불가. 사용자에게 물어 "Heroku 말고 다른 곳으로" → "이 PC + 터널" 선택
+  - 사용자 "너가 해줘"로 운영 작업 위임(11-14의 "직접 배포하지 말 것" 지시를 이번에 해제). 먼저 Heroku에 LIVEKIT_* 3개를 Platform API(WSL `~/.netrc` 토큰)로 넣음 — 이후 Heroku는 안 쓰지만 값은 남아 있음. `dyno-schedule` 워크플로 **비활성화**(gh, Git 자격 증명 토큰 사용)
+  - 같은 PC 확인: WSL `/mnt/a/project/live-platform` = Windows `A:\project\live-platform`, 루트 `.env`에 LiveKit Cloud 키
+  - `docker-compose.prod.yml`(project `jiing`: postgres 18 · backend · frontend `127.0.0.1:3300`), `.env.prod`(gitignore, DB 비밀번호 · JWT 무작위, LiveKit은 A: `.env`에서 복사), `.env.prod.example`(`.gitignore`에 예외 추가), `scripts/self-host.sh [up|url|logs|down]`(Tailscale 주소 → PUBLIC_URL = CORS 반영, `tailscale funnel --bg 3300`), `.gitattributes`(`*.sh eol=lf` — CRLF로 entrypoint "no such file" 재시작 반복)
+  - CORS 주의: Next rewrite가 브라우저 Origin을 그대로 넘겨 Spring CORS가 판단 → `CORS_ALLOWED_ORIGINS`에 공개 주소 필수
+  - Cloudflare 임시 터널(trycloudflare)로 먼저 확인: API(테스트 로그인 Secure 쿠키 · 등록 · **LiveKit Cloud start → LIVE** · 시청 토큰 · 타인 종료 403 · 종료 ENDED · 삭제) + Playwright(scratchpad `e2e/live.mjs`: 카메라 송출 → 비로그인 시청 320x180 영상 · 오디오 → 종료 표시) 통과. 그러나 **SSE 0개**(45초) — 공식 문서상 Quick Tunnel은 SSE 미지원, 주소도 재시작마다 바뀜 → 사용자 선택으로 **Tailscale Funnel**
+  - Tailscale 설치(winget) · 사용자 로그인 완료(계정 codes-gy, 기기 `jiing-live`, 주소 **https://jiing-live.tail00a238.ts.net**). **Funnel 허용 대기**: 사용자가 https://login.tailscale.com/f/funnel?node=nh5yxUc9TL11CNTRL 에서 Enable 해야 함(30분 대기 후 중단)
+  - 문서: DEPLOY.md(1절 자체 호스팅 · 2절 이전 Heroku 기록), ARCHITECTURE 1 · 5절, README(주소 · 운영 · Infra · 운영 배포 · 외부 의존 표), REQUIREMENTS 11 · 23
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
@@ -196,6 +206,7 @@
 - (11-15) 사용자 질문 "외부 서비스 의존을 줄일 수 없나" → 선택지 비교만 함(코드 변경 없음): ① LiveKit 오픈소스 서버 자체 호스팅(VPS · UDP 포트 필요, 코드 변경 거의 없음, Heroku는 UDP 불가) ② 직접 구현 HLS(MediaRecorder → WebSocket → ffmpeg 리먹싱, Heroku 가능, 지연 3~10초, #3 · #5 · #7 · #8 재작성) ③ P2P WebRTC(STUN/TURN 필요, 시청자 늘면 방송자 업로드 폭증). 추천: 마감 전엔 LiveKit Cloud 유지, 자립이 필요하면 ①. **사용자 결정 대기**
 
 ## 다음 작업 (순서대로)
+0. **Funnel 켜기 → 운영 확인**: 사용자 Enable 후 `scripts/self-host.sh up` → 공개 주소에서 `e2e/live.mjs` + SSE(`:connected` 즉시) 확인 → 실제 휴대폰 송출 → LiveKit 웹훅 URL을 `https://jiing-live.tail00a238.ts.net/api/livekit/webhook`으로 등록(사용자, 대시보드) → README · self-host 두 브랜치 push · PR · 머지(README PR 먼저, 쌓인 PR은 대상 develop으로). PC 절전 끄기. Heroku 앱 2개 삭제 여부 사용자 확인(현재 다이노 0, 비용 없음)
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)
