@@ -202,6 +202,13 @@
   - 휴대폰 헤더: "내 방송" 항상 표시, 닉네임은 sm 이상만, 버튼 줄바꿈 방지. 상세: `ShareBroadcast`(링크 복사 · "휴대폰으로 보기" QR, `qrcode` 1.5.4 MIT, 종료 방송엔 숨김). 로그인: 테스트 계정 카드를 위로 + 강조 테두리
   - 확인: lint 통과, Docker 프론트 빌드 통과, iPhone 13 에뮬레이션 스크린샷(가로 넘침 0, QR · 복사 동작). 로컬 compose 스택은 PUBLIC_URL=http://localhost:3300으로 화면 확인용 실행 중
 
+- [x] (11-17) PR #39(E2E · 휴대폰 헤더 · 공유 QR, 이슈 #38) · **PR #41(테스트 원클릭 로그인 제거, 이슈 #40)** develop 머지, 운영 배포
+  - 사용자 요청: "테스트 계정 로그인 관련 내용 제거하고 테스트용 계정 만들어줘". `POST /api/auth/test-login` · `TestAccount` · `TestAccountInitializer` · `app.test-accounts` · `TEST_LOGIN_DISABLED` · 로그인 화면 버튼 · `testLogin` 제거. E2E는 실행마다 회원가입(`e2e-…@example.com`)
+  - **운영 시연 계정(회원가입으로 생성)**: `demo-streamer@example.com`(시연방송자) · `demo-viewer@example.com`(시연시청자), 비밀번호 `jiing2026!` — README 공개
+  - Heroku api에서 `TEST_ACCOUNTS_ENABLED` 설정 삭제
+  - **배포 함정 발견**: Platform API로 `PATCH /formation {docker_image}`만 보내면 200이지만 release가 안 생긴다 → `Accept: application/vnd.heroku+json; version=3.docker-releases` 필요. 그래서 11-17 오전 "배포"는 실제로 반영되지 않았고 운영은 11-12 이미지(+ Neon 설정)였음. 수정 후 api v12 · web v8 release, `test-login` 401 · 로그인 화면 버튼 없음 · 시연 계정 로그인 · **운영 E2E 4/4 통과**
+  - 남은 정리(사용자 확인 필요): 예전 자동 생성 계정 `streamer@test.com` · `viewer@test.com`(공개 비밀번호 test1234!)이 Neon DB에 남아 있음, E2E가 만든 `e2e-…@example.com` 계정도 누적
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
