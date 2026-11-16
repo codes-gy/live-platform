@@ -16,7 +16,7 @@
 | 스트리밍 | **LiveKit Cloud** (WebRTC SFU) | 미디어 서버를 직접 운영하지 않고 1:N 저지연 송출을 얻는다. 서버는 토큰 발급 · 방 생성/삭제 · 웹훅만 담당 |
 | 테스트 | JUnit 5 · Testcontainers PostgreSQL · MockMvc · Playwright(E2E, 저장소 밖) | 실제 DB로 통합 테스트, LiveKit은 가짜 클라이언트로 대체 |
 | CI | GitHub Actions | PR마다 백엔드 `./gradlew test` + 프론트 lint · build |
-| 배포 | Heroku 컨테이너(프론트 · 백엔드 앱 2개, Basic 다이노) + Heroku Postgres Essential-0 (#9) | HTTPS 자동(모바일 카메라 · 화면 공유는 보안 컨텍스트에서만 동작). GitHub 학생 크레딧 사용 |
+| 배포 | Heroku 컨테이너(프론트 · 백엔드 앱 2개, Basic 다이노) + **Neon PostgreSQL** (#9). 대안: Docker Compose 자체 호스팅 | HTTPS 자동(모바일 카메라 · 화면 공유는 보안 컨텍스트에서만 동작). DB를 앱 밖에 두어 앱을 다시 만들어도 데이터 유지. GitHub 학생 크레딧 사용 |
 
 ## 2. 시스템 구성도
 
@@ -186,29 +186,29 @@ flowchart LR
     Studio -- 종료 --> Detail
 ```
 
-## 5. 배포 구성 (#9)
+## 5. 배포 구성
 
 ```mermaid
 flowchart LR
     U["사용자 · 심사자<br/>PC · 휴대폰"] -- HTTPS --> FE["Heroku onair-live-web<br/>(Next.js standalone 컨테이너)"]
     FE -- "/api rewrites" --> BE["Heroku onair-live-api<br/>(Spring Boot 컨테이너)"]
-    BE --> PG[("Heroku Postgres<br/>Essential-0")]
+    BE -- "JDBC (TLS)" --> PG[("Neon PostgreSQL<br/>AWS us-east-1")]
     BE <-- "RoomService · 웹훅" --> LK["LiveKit Cloud"]
     U <-- "WebRTC (wss · UDP/TCP)" --> LK
-    GH["GitHub Actions<br/>운영 시간 예약"] -. "09:00 켜기 · 20:00 끄기 (KST)" .-> FE & BE
 ```
 
-- 서비스: https://onair-live-web-28fc2f0d1715.herokuapp.com (백엔드: https://onair-live-api-daf462a2a9af.herokuapp.com)
-- 배포 · 확인 · 되돌리기 순서는 [DEPLOY.md](DEPLOY.md).
-- 앱 2개 모두 Heroku 컨테이너 스택(US 리전), Basic 다이노(메모리 512MB, 잠들지 않음). 이미지는 `backend/Dockerfile` · `frontend/Dockerfile`, 배포는 `scripts/deploy-heroku.sh [api|web|all]`(로컬 Docker로 linux/amd64 빌드 → Heroku 레지스트리 푸시 → release).
+- 서비스: https://onair-live-web-28fc2f0d1715.herokuapp.com (백엔드: https://onair-live-api-daf462a2a9af.herokuapp.com). 배포 · 확인 · 되돌리기는 [DEPLOY.md](DEPLOY.md).
+- 앱 2개 모두 Heroku 컨테이너 스택(US 리전), Basic 다이노(메모리 512MB, 잠들지 않음), **상시 운영**. 이미지는 `backend/Dockerfile` · `frontend/Dockerfile`, 배포는 `scripts/deploy-heroku.sh [api|web|all]`(로컬 Docker로 linux/amd64 빌드 → Heroku 레지스트리 푸시 → release).
   - Heroku 레지스트리는 Docker v2 매니페스트만 받는다. buildx 기본 OCI 형식 · 출처 증명은 `unsupported`로 거절 → `oci-mediatypes=false`, `--provenance=false`.
   - 프론트는 `output: "standalone"`. `BACKEND_URL`은 빌드 인자로 넣는다(rewrites가 빌드 시점에 읽음).
-  - 백엔드는 `docker-entrypoint.sh`가 Heroku의 `DATABASE_URL`(postgres://)을 JDBC `DB_URL` · `DB_USERNAME` · `DB_PASSWORD`로 바꾼다(`sslmode=require`). 포트는 `PORT`.
   - 512MB 안에 들도록 `JAVA_TOOL_OPTIONS`(힙 45% · SerialGC · 코드 캐시 48m · 메타스페이스 160m · C1만) + Tomcat 스레드 40. 처음 설정(힙 70%)은 R14 메모리 초과가 났다.
-- **운영 시간 오전 9시 ~ 오후 8시(KST)**: `.github/workflows/dyno-schedule.yml`이 다이노를 1 ↔ 0으로 바꾼다(비용 절감, 사용자 결정). 이 시간 밖에는 접속할 수 없다. 수동 실행(workflow_dispatch)으로 언제든 켜고 끌 수 있다. 저장소 시크릿 `HEROKU_API_KEY`는 write 범위 전용 토큰. DB는 항상 켜져 있다.
-- 운영 환경변수(백엔드): `DATABASE_URL`(애드온), `JWT_SECRET`(무작위), `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGINS`(프론트 주소), `TEST_ACCOUNTS_ENABLED=true`, `JAVA_TOOL_OPTIONS`, `SERVER_TOMCAT_THREADS_MAX`, `LIVEKIT_*`.
-- LiveKit Cloud 프로젝트의 웹훅 URL을 `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`으로 등록해야 비정상 종료가 정리된다.
-- 댓글 SSE는 Heroku 라우터 · Next rewrite를 거쳐도 버퍼링 없이 도착함을 확인(첫 이벤트 즉시, 20초 `:ping`). Heroku 라우터 유휴 제한(55초)보다 ping 간격이 짧다.
+- **DB는 Neon**(11-17~): 처음에는 Heroku Postgres 애드온을 썼으나 11-14에 애드온이 앱에서 분리 · 삭제돼 운영이 멈췄다. DB를 앱 밖(Neon, Heroku와 같은 us-east-1)에 두고 `DB_URL` · `DB_USERNAME` · `DB_PASSWORD`를 직접 넣는다(`docker-entrypoint.sh`는 `DB_URL`이 있으면 `DATABASE_URL` 변환을 건너뜀). 무료 플랜은 5분 유휴 시 잠들고 첫 요청에서 1초 안팎으로 깨어난다.
+- 운영 환경변수(백엔드): `DB_*`, `JWT_SECRET`(무작위), `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGINS`(프론트 주소 — Next rewrite가 브라우저 `Origin`을 그대로 넘기므로 필요), `TEST_ACCOUNTS_ENABLED=true`, `JAVA_TOOL_OPTIONS`, `SERVER_TOMCAT_THREADS_MAX`, `LIVEKIT_*`.
+- LiveKit Cloud 웹훅 URL: `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`.
+- 댓글 SSE는 Heroku 라우터 · Next rewrite를 거쳐도 버퍼링 없이 도착한다(구독 1초 안에 `:connected`, 20초 `:ping`이 라우터 유휴 제한 55초보다 짧음).
+- 운영 시간 예약(`.github/workflows/dyno-schedule.yml`, 09~20시 KST)은 심사 기간 상시 운영을 위해 꺼 두었다.
+- **대안: 자체 호스팅** — `docker-compose.prod.yml`(PostgreSQL · Spring · Next.js, 프론트만 `127.0.0.1:3300`) + `scripts/self-host.sh`(Tailscale Funnel로 HTTPS 공개). 호스팅 업체 없이 한 대에서 전부 띄울 수 있다. Cloudflare 임시 터널은 SSE를 지원하지 않아 제외했다(DEPLOY.md 2절).
+- 셸 스크립트는 `.gitattributes`로 LF를 강제한다(Windows 체크아웃의 CRLF 때문에 컨테이너에서 entrypoint가 실행되지 않았다).
 - 녹화 **(예정, #13)**: LiveKit Egress → S3 호환 스토리지.
 
 ## 6. 설정 · 환경변수

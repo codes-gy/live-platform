@@ -162,17 +162,40 @@
   - 이름 최종 **"지이잉"**(11-12, 기계가 켜지는 소리 · 치지직 같은 의성어 계열). "핏"에서 변경: `layout.tsx` · `Logo.tsx` · `Footer.tsx` · `icon.svg` 주석 · README · 문서 제목. 도메인 `pit-live.kro.kr`은 이름과 안 맞음 → 사용자에게 새 도메인 여부 확인
   - 백엔드용 `api.pit-live.kro.kr`은 필수 아님: 브라우저는 프론트의 `/api`만 부르고, 백엔드 주소가 필요한 곳은 LiveKit 웹훅뿐(herokuapp 주소로 충분)
 
-- [x] (11-13) #34 LIVE로 남은 방송 주기적 정리: 브랜치 `feature/live/#34-live-reconcile`(WSL PC 세션, 하위 세션 구현 · 메인 세션 검토), PR #35
+- [x] (11-13) #34 LIVE로 남은 방송 주기적 정리: 브랜치 `feature/live/#34-live-reconcile`(WSL PC 세션, 하위 세션 구현 · 메인 세션 검토), PR #35 develop 머지 완료
   - 이유: 웹훅 유실(로컬은 웹훅 없음, Heroku 야간 정지 중 웹훅 · 메모리 유예 작업 소실) 시 방송이 영원히 LIVE로 남음 → 방송 상태 관리 평가 항목
   - `LiveReconcileScheduler`(`@Scheduled` fixedDelay · initialDelay = `app.livekit.reconcile-interval`, 기본 1m, `@EnableScheduling`은 `LiveKitConfig`) → `BroadcastLiveService.reconcileLive()`: 시작한 지 유예(30s)가 지난 LIVE 방송(`findLiveStartedBefore`)마다 LiveKit에 방송자 있는지 확인 → 없으면 유예 뒤 다시 확인(기존 `endIfBroadcasterGone`)해서도 없을 때만 ENDED(`endLocked` 한 곳, 댓글 SSE `ended` 발행) + 방 닫기. 방송별 재확인 예약은 하나만(`recheckPending`). LiveKit 호출 실패 시 그 회차 중단(아무것도 안 끝냄)
   - 상태는 DB · LiveKit에서만 읽어 재시작 후에도 다음 주기에 다시 찾음. 새로고침(유예 안 복귀)은 종료 안 됨
   - 테스트 104개 통과(`LiveReconcileTest` 7: 방송자 없음 → 종료 · 방 삭제, 있음 → 유지, 유예 안 복귀 → 유지, 막 시작 → 유지, LiveKit 실패 → 유지, deleteRoom 실패해도 ENDED, READY/ENDED 무시). 테스트는 주기 1h로 타이머 끔
   - **실제 LiveKit Cloud 확인**: 주기 5s로 띄우고 방송자 없이 start → 63초 뒤 ENDED(시작 유예 30 + 주기 ≤5 + 재확인 30). 로컬은 웹훅이 없고 LiveKit 빈 방 정리는 2분이라 정리 작업이 끝낸 것
 
-- [x] (11-14) #9 배포 절차서 · LiveKit 키 설정 스크립트: 브랜치 `chore/deploy/#9-deploy-guide`(WSL PC 세션), PR 대기
+- [x] (11-14) #9 배포 절차서 · LiveKit 키 설정 스크립트: 브랜치 `chore/deploy/#9-deploy-guide`(WSL PC 세션), PR #36 develop 머지 완료(11-16)
   - `docs/DEPLOY.md`: 준비물, 운영 설정 표(값 없이), LiveKit 키 · 웹훅 등록, 배포 명령과 언제 api/web을 배포하는지, 배포 후 확인(서버 · 기능 8단계 · 운영 시간 수동 on/off), 되돌리기(`releases:rollback`, 마이그레이션 주의), 남은 일 체크리스트. ARCHITECTURE 5절에서 링크, 6절 고정 설정에 `reconcile-interval` 추가
   - `scripts/heroku-livekit-config.sh [.env]`: `.env`의 LIVEKIT 3개를 `heroku config:set`으로 넣고 값은 출력 안 함. 빈 값 · `ws://`(로컬 주소) · 파일 없음이면 안내 후 중단(세 경로 실행 확인, 처음엔 `set -e` + grep 무일치로 안내 없이 종료되던 것을 수정). 성공 경로는 운영 변경이라 실행 안 함
   - 11-14 PR 정리: #31 머지 때 브랜치 삭제로 위에 쌓인 #33이 자동으로 닫힘 → 브랜치 복구 · 재오픈 · 대상 develop으로 변경 · 닫았다 열어 CI 실행 → 머지. #35는 PROGRESS 충돌을 develop 병합으로 해결(양쪽 항목 유지) 후 머지. **쌓인 PR은 아래 PR부터 대상 브랜치를 develop으로 바꾼 뒤 머지할 것**
+
+- [x] (11-15) #14 README 작성: 브랜치 `chore/docs/#14-readme`(Windows 워크트리 `shiner`), develop(PR #36 머지 후)로 리베이스, **push · PR 전**
+  - 구성: 서비스 주소 · 운영 시간 · 시연 영상(자리만) · 테스트 계정(로그인 화면 "방송자로 시작 · 시청자로 시작" 버튼) · 주요 기능 · 기능 확인 방법(PC · 모바일 · 시청 · 상태/종료 처리 표 · 권한 표와 확인 예) · 지원 환경 · 기술 스택 · 구조(mermaid + 제어/미디어 분리 설명) · 로컬 실행(환경변수 표, 로컬 LiveKit/Cloud 선택) · 테스트 · 배포 · **외부 서비스 의존과 대안**(LiveKit 자체 호스팅 가능) · 알려진 한계 · 출처(LiveKit 각 SDK · Pretendard OFL-1.1 · AI 도구)
+  - README의 버튼 이름은 실제 컴포넌트 문구와 대조해 맞춤(방송 시작하기 · 송출 화면 · 화면 선택 · 마이크 켜기 · 카메라 켜기 · 전면/후면 전환 · 화면 바꾸기 · 방송 재개 · 눌러서 소리 켜기)
+  - `REQUIREMENTS.md` 24 · 25 · 26 · 28 → ✅. 남은 README 빈칸: **시연 영상 링크**(촬영 후), 선택 기능을 구현하면 "알려진 한계"의 "도네이션 · 녹화 미구현" 문장 수정
+
+- [x] (11-16) 운영을 Heroku → 자체 호스팅으로 전환 시도(→ 11-17 Heroku + Neon으로 되돌림, 자체 호스팅은 대안으로 유지): 브랜치 `chore/deploy/self-host-tunnel`(README 브랜치 위에 쌓음), 로컬 커밋 68e7ea5 · **push · PR 전**
+  - 발견: Heroku `onair-live-api`의 Postgres가 **11-14 03:08 UTC 분리 · 삭제**(release v8 "Detach DATABASE", 애드온 0개) → 운영 백엔드 기동 불가. 사용자에게 물어 "Heroku 말고 다른 곳으로" → "이 PC + 터널" 선택
+  - 사용자 "너가 해줘"로 운영 작업 위임(11-14의 "직접 배포하지 말 것" 지시를 이번에 해제). 먼저 Heroku에 LIVEKIT_* 3개를 Platform API(WSL `~/.netrc` 토큰)로 넣음 — 이후 Heroku는 안 쓰지만 값은 남아 있음. `dyno-schedule` 워크플로 **비활성화**(gh, Git 자격 증명 토큰 사용)
+  - 같은 PC 확인: WSL `/mnt/a/project/live-platform` = Windows `A:\project\live-platform`, 루트 `.env`에 LiveKit Cloud 키
+  - `docker-compose.prod.yml`(project `jiing`: postgres 18 · backend · frontend `127.0.0.1:3300`), `.env.prod`(gitignore, DB 비밀번호 · JWT 무작위, LiveKit은 A: `.env`에서 복사), `.env.prod.example`(`.gitignore`에 예외 추가), `scripts/self-host.sh [up|url|logs|down]`(Tailscale 주소 → PUBLIC_URL = CORS 반영, `tailscale funnel --bg 3300`), `.gitattributes`(`*.sh eol=lf` — CRLF로 entrypoint "no such file" 재시작 반복)
+  - CORS 주의: Next rewrite가 브라우저 Origin을 그대로 넘겨 Spring CORS가 판단 → `CORS_ALLOWED_ORIGINS`에 공개 주소 필수
+  - Cloudflare 임시 터널(trycloudflare)로 먼저 확인: API(테스트 로그인 Secure 쿠키 · 등록 · **LiveKit Cloud start → LIVE** · 시청 토큰 · 타인 종료 403 · 종료 ENDED · 삭제) + Playwright(scratchpad `e2e/live.mjs`: 카메라 송출 → 비로그인 시청 320x180 영상 · 오디오 → 종료 표시) 통과. 그러나 **SSE 0개**(45초) — 공식 문서상 Quick Tunnel은 SSE 미지원, 주소도 재시작마다 바뀜 → 사용자 선택으로 **Tailscale Funnel**
+  - Tailscale 설치(winget) · 사용자 로그인 완료(계정 codes-gy, 기기 `jiing-live`, 주소 **https://jiing-live.tail00a238.ts.net**). **Funnel 허용 대기**: 사용자가 https://login.tailscale.com/f/funnel?node=nh5yxUc9TL11CNTRL 에서 Enable 해야 함(30분 대기 후 중단)
+  - 문서: DEPLOY.md(1절 자체 호스팅 · 2절 이전 Heroku 기록), ARCHITECTURE 1 · 5절, README(주소 · 운영 · Infra · 운영 배포 · 외부 의존 표), REQUIREMENTS 11 · 23
+
+- [x] (11-17) **운영 복구: Heroku + Neon PostgreSQL**
+  - 11-17 새벽 확인 시 Heroku 다이노가 누군가에 의해 1로 켜져 있었고(DB 없어 api 503), 이 PC의 compose는 Docker 종료로 4시간 전 멈춤 · Funnel 미허용 → 사용자 제안 "heroku + neon db" 채택
+  - 사용자가 Neon 프로젝트(AWS us-east-1, 직접 연결) 생성 후 `A:\project\live-platform\.env`에 `NEON_DATABASE_URL` 추가 → Claude가 값 출력 없이 Heroku api에 `DB_URL`(jdbc …/neondb?sslmode=require) · `DB_USERNAME` · `DB_PASSWORD` 설정(Platform API, WSL `~/.netrc` 토큰)
+  - 최신 코드로 api · web 이미지 빌드 → 레지스트리 푸시 → formation release(heroku CLI 없이 scratchpad `heroku/deploy.sh`: docker.exe buildx + `imagetools inspect`로 config digest → PATCH formation). api health UP(Flyway V1~V3 Neon 적용)
+  - 운영 주소 E2E 통과: 테스트 로그인 · 등록 · **LiveKit Cloud start → LIVE** · 종료 · 삭제, **댓글 SSE**(1초 안 `:connected`, 작성 즉시 `comment`), Playwright 카메라 송출 → 비로그인 시청 영상 · 오디오 → 종료 표시
+  - 상시 운영(다이노 1 유지, `dyno-schedule` 비활성 유지). 문서(DEPLOY 전면 개편 · ARCHITECTURE 1 · 5절 · README · REQUIREMENTS 11 · 23)를 Heroku + Neon 기준으로, 자체 호스팅은 대안 절로
+  - 이 PC 정리 상태: compose 컨테이너 정지(볼륨 `jiing_pgdata` 남음), Tailscale 설치 · 로그인(기기 jiing-live) 상태로 남음 — 필요 없으면 사용자가 제거
 
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
@@ -187,10 +210,14 @@
 - 다른 개발 PC(WSL2, `/mnt/a/project/live-platform`): Java 25 `/usr/lib/jvm/java-25-openjdk-amd64`, 루트 `.env`에 LiveKit Cloud 키 있음 — `set -a; . ../.env; set +a` 후 bootRun
 - E2E: scratchpad `e2e/`(저장소 밖) — `pc-broadcast.mjs` · `mobile-broadcast.mjs` · `comments.mjs` · `ui-polish.mjs` · `review.mjs`(스크린샷). Postgres + 백엔드(8080) + `next start -p 3100` 후 `node <파일>`
 
+- (11-15) 상태 점검: develop 최신 08d7de9(#35 머지). 이 Windows 워크트리(`shiner`, 브랜치 `gy/shiner`)에는 `gh` 로그인 · `heroku` CLI 없음. 운영 API health 503(운영 시간 외이거나 다이노 정지 추정, 미확인). 마감까지 4일
+- (11-15) 사용자 질문 "외부 서비스 의존을 줄일 수 없나" → 선택지 비교만 함(코드 변경 없음): ① LiveKit 오픈소스 서버 자체 호스팅(VPS · UDP 포트 필요, 코드 변경 거의 없음, Heroku는 UDP 불가) ② 직접 구현 HLS(MediaRecorder → WebSocket → ffmpeg 리먹싱, Heroku 가능, 지연 3~10초, #3 · #5 · #7 · #8 재작성) ③ P2P WebRTC(STUN/TURN 필요, 시청자 늘면 방송자 업로드 폭증). 추천: 마감 전엔 LiveKit Cloud 유지, 자립이 필요하면 ①. **사용자 결정 대기**
+
 ## 다음 작업 (순서대로)
+0. (11-17) README + 운영 문서 PR 머지(사용자 승인) → **LiveKit 웹훅 URL 등록**(사용자, `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`) → 실제 휴대폰 송출 확인 → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
-2. README(#14) + 시연 영상(PC · 모바일 송출 · 시청 · 종료). 출처에 LiveKit · Pretendard(OFL-1.1) 포함
-2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조, **LIVE로 남은 방송 정리**(주기적으로 LiveKit에 방 · 방송자 존재 확인 → 없으면 ENDED, 웹훅 유실 대비 · 상태 관리 평가 항목)
+2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
+2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)
 3. 선택 #12 도네이션(토스페이먼츠 테스트 키 필요) · #13 녹화(LiveKit Egress + S3 호환 스토리지 필요)
 
 ## 사용자 확인 필요
