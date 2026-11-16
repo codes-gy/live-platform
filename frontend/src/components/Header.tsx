@@ -27,12 +27,13 @@ export function Header() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex items-center gap-6">
           <Logo />
-          <nav className="hidden items-center gap-4 text-sm text-muted sm:flex">
-            <Link href="/" className="hover:text-fg">
+          {/* 좁은 화면에서는 로고가 목록으로 가므로 "방송 목록"만 숨기고 "내 방송"은 남긴다 */}
+          <nav className="flex items-center gap-4 text-sm text-muted">
+            <Link href="/" className="hidden hover:text-fg sm:inline">
               방송 목록
             </Link>
             {user && (
-              <Link href="/my" className="hover:text-fg">
+              <Link href="/my" className="whitespace-nowrap hover:text-fg">
                 내 방송
               </Link>
             )}
@@ -43,24 +44,24 @@ export function Header() {
           {status === "loading" && <span className="h-8 w-24 animate-pulse rounded-md bg-surface-2" />}
           {status === "anonymous" && (
             <>
-              <Link href="/login" className="rounded-md px-3 py-1.5 text-muted hover:text-fg">
+              <Link href="/login" className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted hover:text-fg">
                 로그인
               </Link>
-              <Link href="/signup" className="rounded-md bg-surface-2 px-3 py-1.5 font-medium hover:bg-line">
+              <Link href="/signup" className="whitespace-nowrap rounded-md bg-surface-2 px-3 py-1.5 font-medium hover:bg-line">
                 회원가입
               </Link>
             </>
           )}
           {user && (
             <>
-              <Link href="/my" className="max-w-32 truncate rounded-md px-2 py-1.5 font-medium hover:bg-surface-2">
+              <Link href="/my" className="hidden max-w-32 truncate rounded-md px-2 py-1.5 font-medium hover:bg-surface-2 sm:block">
                 {user.nickname}
               </Link>
               <button
                 type="button"
                 onClick={onLogout}
                 disabled={pending}
-                className="rounded-md px-3 py-1.5 text-muted hover:text-fg disabled:opacity-50"
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted hover:text-fg disabled:opacity-50"
               >
                 로그아웃
               </button>

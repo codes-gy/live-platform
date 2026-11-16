@@ -167,9 +167,12 @@ npm run dev                                # http://localhost:3000
 ```bash
 cd backend && ./gradlew test               # Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
 cd frontend && npm run lint && npm run build
+E2E_BASE_URL=http://localhost:3000 npm run e2e   # 브라우저 E2E (실행 중인 서버 필요, frontend/e2e/README.md)
 ```
 
 백엔드 테스트는 비로그인 · 소유자 · 다른 사용자별 허용/거절, 상태 전이, 웹훅 서명 위조 · 중복, 방송자 이탈 유예, 주기 정리, 댓글 권한 · SSE를 검증합니다. LiveKit 호출은 테스트용 가짜 구현(`FakeLiveKitRoomClient`)으로 대체합니다. PR마다 GitHub Actions(`.github/workflows/ci.yml`)가 같은 검사를 실행합니다.
+
+브라우저 E2E(`frontend/e2e`, Playwright)는 가짜 카메라 · 마이크로 실제 송출 → 비로그인 시청(영상 · 소리) → 댓글 실시간 수신 → 종료와, 비로그인 · 다른 사용자 권한 거절을 확인합니다. 운영 주소에서 4개 모두 통과했습니다(11-17).
 
 ### 운영 배포
 ```bash

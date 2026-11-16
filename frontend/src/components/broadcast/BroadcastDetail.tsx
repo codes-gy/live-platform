@@ -8,6 +8,7 @@ import { Notice } from "../ui";
 import { LivePlayer } from "./LivePlayer";
 import { OwnerActions } from "./OwnerActions";
 import { OwnerAvatar } from "./OwnerAvatar";
+import { ShareBroadcast } from "./ShareBroadcast";
 import { StatusBadge } from "./StatusBadge";
 
 /** 방송 전이면 시작했는지 이 간격으로 확인해, 시작되면 바로 시청 화면으로 바꾼다. */
@@ -104,6 +105,7 @@ export function BroadcastDetail({ id }: { id: number }) {
             )}
           </dl>
           <OwnerActions broadcast={b} />
+          {b.status !== "ENDED" && <ShareBroadcast />}
         </header>
 
         {b.description && (
