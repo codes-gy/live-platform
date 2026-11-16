@@ -2,14 +2,13 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, ApiError, json } from "@/lib/api";
-import type { AuthStatus, Me, TestAccount } from "./types";
+import type { AuthStatus, Me } from "./types";
 
 type AuthContextValue = {
   user: Me | null;
   status: AuthStatus;
   login: (email: string, password: string) => Promise<Me>;
   signup: (email: string, password: string, nickname: string) => Promise<Me>;
-  testLogin: (account: TestAccount) => Promise<Me>;
   logout: () => Promise<void>;
   /** 토큰 만료 등으로 다시 확인할 때 */
   refresh: () => Promise<void>;
@@ -62,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refresh,
       login: (email, password) => signIn("/api/auth/login", { email, password }),
       signup: (email, password, nickname) => signIn("/api/auth/signup", { email, password, nickname }),
-      testLogin: (account) => signIn("/api/auth/test-login", { account }),
       logout: async () => {
         try {
           await api<void>("/api/auth/logout", { method: "POST" });

@@ -7,7 +7,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 | 서비스 주소 | **https://onair-live-web-28fc2f0d1715.herokuapp.com** |
 | 운영 | 상시 운영. 오래 접속이 없었다면 첫 요청이 1~2초 늦을 수 있습니다(DB 대기 해제) |
 | 시연 영상 | _(링크 추가 예정)_ |
-| 테스트 계정 | 아래 [테스트 계정](#테스트-계정) 참고 — 로그인 화면의 버튼 한 번으로 로그인 |
+| 테스트 계정 | 아래 [테스트 계정](#테스트-계정) 참고 |
 
 ## 주요 기능
 
@@ -22,12 +22,12 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 
 ## 테스트 계정
 
-로그인 화면(`/login`)의 **"방송자로 시작" · "시청자로 시작"** 버튼을 누르면 바로 로그인됩니다. 직접 입력해도 됩니다.
+로그인 화면(`/login`)에서 아래 계정으로 로그인하세요. 운영 서버에 일반 회원가입으로 만들어 둔 계정입니다.
 
 | 역할 | 이메일 | 비밀번호 | 용도 |
 |---|---|---|---|
-| 방송자 | `streamer@test.com` | `test1234!` | 방송 만들기 · 송출 |
-| 시청자 | `viewer@test.com` | `test1234!` | 다른 사용자로 권한 거절 확인 · 댓글 |
+| 방송자 | `demo-streamer@example.com` | `jiing2026!` | 방송 만들기 · 송출 |
+| 시청자 | `demo-viewer@example.com` | `jiing2026!` | 다른 사용자로 권한 거절 확인 · 댓글 |
 
 회원가입(`/signup`)으로 새 계정을 만들어도 모든 기능을 쓸 수 있습니다.
 
@@ -76,7 +76,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 | 수정 · 삭제 · 송출 시작/종료 | ❌ 401 | ❌ 403 | ✅ |
 | 댓글 작성 | ❌ 로그인 링크 | ✅ | ✅ |
 
-확인 예: `streamer@test.com`으로 방송을 만든 뒤 `viewer@test.com`으로 로그인해 그 방송의 `/broadcasts/{id}/edit` 또는 `/studio/{id}`에 들어가면 권한 없음 안내가 나오고, API는 403(`NOT_BROADCAST_OWNER`)을 돌려줍니다. 화면 버튼을 숨기는 것과 별개로 모든 판단은 서버가 합니다.
+확인 예: `demo-streamer@example.com`로 방송을 만든 뒤 `demo-viewer@example.com`로 로그인해 그 방송의 `/broadcasts/{id}/edit` 또는 `/studio/{id}`에 들어가면 권한 없음 안내가 나오고, API는 403(`NOT_BROADCAST_OWNER`)을 돌려줍니다. 화면 버튼을 숨기는 것과 별개로 모든 판단은 서버가 합니다.
 
 ## 지원 환경
 
@@ -139,7 +139,6 @@ cp .env.example .env    # 값 설명은 파일 안 주석 참고
 | `DB_URL` · `DB_USERNAME` · `DB_PASSWORD` | PostgreSQL 접속 | `docker-compose.yml`과 같음 |
 | `JWT_SECRET` | JWT 서명 키(32자 이상) | 직접 입력 |
 | `COOKIE_SECURE` | HTTPS에서만 쿠키 전송 | 로컬 `false`, 운영 `true` |
-| `TEST_ACCOUNTS_ENABLED` · `TEST_ACCOUNT_PASSWORD` | 테스트 계정 자동 생성 | `true` · `test1234!` |
 | `CORS_ALLOWED_ORIGINS` | 허용할 프론트 주소 | `http://localhost:3000` |
 | `LIVEKIT_URL` · `LIVEKIT_API_KEY` · `LIVEKIT_API_SECRET` | LiveKit 서버 | 아래 둘 중 하나 |
 | `BACKEND_URL` | 프론트 `/api` 요청을 넘길 주소(빌드 시 읽음) | `http://localhost:8080` |

@@ -4,6 +4,4 @@ export type Me = {
   nickname: string;
 };
 
-export type TestAccount = "STREAMER" | "VIEWER";
-
 export type AuthStatus = "loading" | "authenticated" | "anonymous";

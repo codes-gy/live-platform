@@ -1,14 +1,24 @@
 import { expect, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 
-export type TestAccount = "STREAMER" | "VIEWER";
+export type Role = "STREAMER" | "VIEWER";
 
-/** 로그인 화면의 테스트 계정 버튼으로 로그인한 새 브라우저 컨텍스트 */
-export async function loginAs(browser: Browser, account: TestAccount): Promise<Page> {
+/**
+ * 회원가입으로 새 사용자를 만들고 로그인된 브라우저 컨텍스트를 돌려준다.
+ * 실행할 때마다 새 계정을 써서 운영 데이터 · 공개 계정에 기대지 않는다.
+ */
+export async function loginAs(browser: Browser, role: Role): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto("/login");
-  await page.getByRole("button", { name: account === "STREAMER" ? /방송자로 시작/ : /시청자로 시작/ }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const response = await page.request.post("/api/auth/signup", {
+    data: {
+      email: `e2e-${role.toLowerCase()}-${suffix}@example.com`,
+      password: `e2e-${suffix}`,
+      nickname: role === "STREAMER" ? "E2E방송자" : "E2E시청자",
+    },
+  });
+  expect(response.status()).toBe(201);
+  await page.goto("/");
   return page;
 }
 

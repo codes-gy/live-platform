@@ -79,7 +79,7 @@ stateDiagram-v2
 
 - 로그인 성공 시 JWT를 **HttpOnly 쿠키 `access_token`** 으로 내린다(SameSite=Lax, 운영 Secure). `Authorization: Bearer`도 허용한다(Swagger · 테스트용).
 - 비밀번호는 BCrypt. 로그아웃은 쿠키를 `Max-Age=0`으로 지운다(무상태, 서버 세션 없음).
-- 심사용 테스트 계정 `streamer@test.com` · `viewer@test.com`(비밀번호 `test1234!`)을 시작 시 만들고, 로그인 화면의 버튼(`POST /api/auth/test-login`)으로 바로 로그인한다.
+- 심사용 테스트 계정은 별도 기능 없이 운영 서버에 일반 회원가입으로 만들어 두었다(`demo-streamer@example.com` · `demo-viewer@example.com`, README에 공개). 처음에는 비밀번호 없이 로그인하는 `test-login` API와 시작 시 계정 자동 생성이 있었으나, 인증을 우회하는 경로를 운영에 두지 않으려고 11-17에 없앴다.
 - 프론트: `proxy.ts`가 쿠키 유무만 보고 보호 경로를 `/login?next=`로 보낸다(빠른 1차 차단). 실제 판단은 서버가 한다. `safeNext`로 오픈 리다이렉트를 막는다.
 
 ### 3.2 인가 규칙 (서버에서 검증)
@@ -109,7 +109,7 @@ stateDiagram-v2
 
 | 메서드 · 경로 | 권한 | 설명 |
 |---|---|---|
-| `POST /api/auth/signup` · `login` · `test-login` · `logout` | 공개 | 쿠키 발급 · 삭제 |
+| `POST /api/auth/signup` · `login` · `logout` | 공개 | 쿠키 발급 · 삭제 |
 | `GET /api/auth/me` | 로그인 | 내 정보 |
 | `POST /api/broadcasts` | 로그인 | 등록 → 201 + Location, 상태 READY |
 | `GET /api/broadcasts?status=&ownerId=&page=&size=` | 공개 | 최신순, size ≤ 50, `PageResponse` |

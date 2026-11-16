@@ -165,46 +165,4 @@ class AuthControllerTest {
 					.andExpect(cookie().maxAge(AuthCookies.ACCESS_TOKEN, 0));
 		}
 	}
-
-	@Nested
-	@DisplayName("테스트 계정 로그인")
-	class TestLogin {
-
-		@Test
-		void 방송자_테스트_계정으로_바로_로그인한다() throws Exception {
-			MvcResult result = mockMvc.perform(post("/api/auth/test-login")
-							.contentType(MediaType.APPLICATION_JSON)
-							.content("""
-									{"account":"STREAMER"}
-									"""))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.email").value("streamer@test.com"))
-					.andReturn();
-
-			mockMvc.perform(get("/api/auth/me").cookie(tokenCookie(result)))
-					.andExpect(status().isOk())
-					.andExpect(jsonPath("$.nickname").value("테스트방송자"));
-		}
-
-		@Test
-		void 테스트_계정은_공개_비밀번호로도_로그인된다() throws Exception {
-			mockMvc.perform(post("/api/auth/login")
-							.contentType(MediaType.APPLICATION_JSON)
-							.content("""
-									{"email":"viewer@test.com","password":"test1234!"}
-									"""))
-					.andExpect(status().isOk());
-		}
-
-		@Test
-		void 없는_계정_종류면_400() throws Exception {
-			mockMvc.perform(post("/api/auth/test-login")
-							.contentType(MediaType.APPLICATION_JSON)
-							.content("""
-									{"account":"ADMIN"}
-									"""))
-					.andExpect(status().isBadRequest())
-					.andExpect(jsonPath("$.code").value("INVALID_INPUT"));
-		}
-	}
 }

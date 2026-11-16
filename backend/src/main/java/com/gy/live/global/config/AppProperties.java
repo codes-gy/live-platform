@@ -9,7 +9,6 @@ public record AppProperties(
 		List<String> corsAllowedOrigins,
 		Jwt jwt,
 		Cookie cookie,
-		TestAccounts testAccounts,
 		Livekit livekit
 ) {
 
@@ -40,9 +39,5 @@ public record AppProperties(
 		private static boolean isPresent(String value) {
 			return value != null && !value.isBlank();
 		}
-	}
-
-	/** 심사자용 테스트 계정. 비밀번호는 README에 공개하는 값이라 민감 정보가 아니다. */
-	public record TestAccounts(boolean enabled, String password) {
 	}
 }
