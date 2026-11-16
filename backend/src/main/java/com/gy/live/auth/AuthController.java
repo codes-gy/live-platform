@@ -3,7 +3,6 @@ package com.gy.live.auth;
 import com.gy.live.auth.dto.LoginRequest;
 import com.gy.live.auth.dto.MeResponse;
 import com.gy.live.auth.dto.SignupRequest;
-import com.gy.live.auth.dto.TestLoginRequest;
 import com.gy.live.global.security.AuthCookies;
 import com.gy.live.global.security.JwtProvider;
 import com.gy.live.global.security.LoginUser;
@@ -42,12 +41,6 @@ public class AuthController {
 	@PostMapping("/login")
 	public ResponseEntity<MeResponse> login(@Valid @RequestBody LoginRequest request) {
 		return withToken(HttpStatus.OK, authService.login(request));
-	}
-
-	/** 심사자가 비밀번호 입력 없이 STREAMER(방송자) · VIEWER(다른 사용자)로 로그인한다. */
-	@PostMapping("/test-login")
-	public ResponseEntity<MeResponse> testLogin(@Valid @RequestBody TestLoginRequest request) {
-		return withToken(HttpStatus.OK, authService.testLogin(request.account()));
 	}
 
 	@PostMapping("/logout")

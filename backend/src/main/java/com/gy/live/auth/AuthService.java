@@ -2,7 +2,6 @@ package com.gy.live.auth;
 
 import com.gy.live.auth.dto.LoginRequest;
 import com.gy.live.auth.dto.SignupRequest;
-import com.gy.live.global.config.AppProperties;
 import com.gy.live.global.error.BusinessException;
 import com.gy.live.global.error.ErrorCode;
 import com.gy.live.user.User;
@@ -18,12 +17,10 @@ public class AuthService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
-	private final AppProperties properties;
 
-	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, AppProperties properties) {
+	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
-		this.properties = properties;
 	}
 
 	@Transactional
@@ -46,15 +43,6 @@ public class AuthService {
 		return userRepository.findByEmail(normalize(request.email()))
 				.filter(user -> passwordEncoder.matches(request.password(), user.getPasswordHash()))
 				.orElseThrow(() -> new BusinessException(ErrorCode.LOGIN_FAILED));
-	}
-
-	@Transactional(readOnly = true)
-	public User testLogin(TestAccount account) {
-		if (!properties.testAccounts().enabled()) {
-			throw new BusinessException(ErrorCode.TEST_LOGIN_DISABLED);
-		}
-		return userRepository.findByEmail(account.email())
-				.orElseThrow(() -> new BusinessException(ErrorCode.TEST_LOGIN_DISABLED));
 	}
 
 	@Transactional(readOnly = true)

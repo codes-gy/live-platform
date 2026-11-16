@@ -11,7 +11,6 @@ public enum ErrorCode {
 
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
 	LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
-	TEST_LOGIN_DISABLED(HttpStatus.NOT_FOUND, "테스트 계정 로그인이 꺼져 있습니다."),
 
 	BROADCAST_NOT_FOUND(HttpStatus.NOT_FOUND, "방송을 찾을 수 없습니다."),
 	NOT_BROADCAST_OWNER(HttpStatus.FORBIDDEN, "방송 소유자만 할 수 있습니다."),

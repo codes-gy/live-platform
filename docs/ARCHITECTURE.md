@@ -203,7 +203,7 @@ flowchart LR
   - 프론트는 `output: "standalone"`. `BACKEND_URL`은 빌드 인자로 넣는다(rewrites가 빌드 시점에 읽음).
   - 512MB 안에 들도록 `JAVA_TOOL_OPTIONS`(힙 45% · SerialGC · 코드 캐시 48m · 메타스페이스 160m · C1만) + Tomcat 스레드 40. 처음 설정(힙 70%)은 R14 메모리 초과가 났다.
 - **DB는 Neon**(11-17~): 처음에는 Heroku Postgres 애드온을 썼으나 11-14에 애드온이 앱에서 분리 · 삭제돼 운영이 멈췄다. DB를 앱 밖(Neon, Heroku와 같은 us-east-1)에 두고 `DB_URL` · `DB_USERNAME` · `DB_PASSWORD`를 직접 넣는다(`docker-entrypoint.sh`는 `DB_URL`이 있으면 `DATABASE_URL` 변환을 건너뜀). 무료 플랜은 5분 유휴 시 잠들고 첫 요청에서 1초 안팎으로 깨어난다.
-- 운영 환경변수(백엔드): `DB_*`, `JWT_SECRET`(무작위), `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGINS`(프론트 주소 — Next rewrite가 브라우저 `Origin`을 그대로 넘기므로 필요), `TEST_ACCOUNTS_ENABLED=true`, `JAVA_TOOL_OPTIONS`, `SERVER_TOMCAT_THREADS_MAX`, `LIVEKIT_*`.
+- 운영 환경변수(백엔드): `DB_*`, `JWT_SECRET`(무작위), `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGINS`(프론트 주소 — Next rewrite가 브라우저 `Origin`을 그대로 넘기므로 필요), `JAVA_TOOL_OPTIONS`, `SERVER_TOMCAT_THREADS_MAX`, `LIVEKIT_*`.
 - LiveKit Cloud 웹훅 URL: `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`.
 - 댓글 SSE는 Heroku 라우터 · Next rewrite를 거쳐도 버퍼링 없이 도착한다(구독 1초 안에 `:connected`, 20초 `:ping`이 라우터 유휴 제한 55초보다 짧음).
 - 운영 시간 예약(`.github/workflows/dyno-schedule.yml`, 09~20시 KST)은 심사 기간 상시 운영을 위해 꺼 두었다.
@@ -218,7 +218,6 @@ flowchart LR
 | `DB_URL` · `DB_USERNAME` · `DB_PASSWORD` | `jdbc:postgresql://localhost:5432/live` · `live` · `live` | PostgreSQL |
 | `JWT_SECRET` · `JWT_ACCESS_TOKEN_TTL` | 개발용 문자열 · `12h` | 인증 토큰 |
 | `COOKIE_SECURE` | `false` | 운영(HTTPS)에서는 `true` |
-| `TEST_ACCOUNTS_ENABLED` · `TEST_ACCOUNT_PASSWORD` | `true` · `test1234!` | 심사용 계정 자동 생성 |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | 직접 호출 허용 출처 |
 | `LIVEKIT_URL` · `LIVEKIT_API_KEY` · `LIVEKIT_API_SECRET` | 비어 있음 | 비어 있으면 라이브 API가 503 `LIVEKIT_NOT_CONFIGURED` |
 | `BACKEND_URL` (프론트) | `http://localhost:8080` | `/api` rewrites 대상, **빌드 시점**에 읽힘 |

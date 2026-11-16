@@ -22,7 +22,6 @@
 | `JWT_SECRET` | 무작위 문자열 |
 | `COOKIE_SECURE` | `true` |
 | `CORS_ALLOWED_ORIGINS` | 프론트 주소. Next rewrite가 브라우저의 `Origin`을 그대로 넘기므로 필요하다 |
-| `TEST_ACCOUNTS_ENABLED` | `true` (심사용 테스트 계정) |
 | `LIVEKIT_URL` · `LIVEKIT_API_KEY` · `LIVEKIT_API_SECRET` | LiveKit Cloud 키. 없으면 송출 · 시청 API가 503 `LIVEKIT_NOT_CONFIGURED` |
 | `JAVA_TOOL_OPTIONS` · `SERVER_TOMCAT_THREADS_MAX` | 512MB 다이노용 메모리 설정 |
 
@@ -58,10 +57,10 @@ heroku logs -a onair-live-api --tail   # 시작 오류 · R14(메모리 초과) 
 ```
 
 기능 확인 순서:
-1. 테스트 계정 STREAMER로 로그인해 방송을 만든다.
+1. README의 방송자 테스트 계정으로 로그인해 방송을 만든다.
 2. PC Chrome에서 송출 화면을 열고 화면과 "탭 오디오 공유"를 고른 뒤 방송을 시작한다.
 3. 휴대폰(다른 기기)에서 비로그인으로 방송 상세를 열어 영상과 소리를 확인한다.
-4. 휴대폰에서 STREAMER로 로그인해 카메라 송출을 시작하고 PC에서 시청한다. 후면 카메라 전환도 확인한다.
+4. 휴대폰에서 방송자 계정으로 로그인해 카메라 송출을 시작하고 PC에서 시청한다. 후면 카메라 전환도 확인한다.
 5. 댓글을 쓰고 상대 화면에 바로 뜨는지 본다.
 6. 송출 화면에서 방송을 종료하고 시청 화면이 "방송이 종료되었습니다"로 바뀌는지 본다.
 7. 다시 방송을 시작한 뒤 송출 탭을 닫는다. 30초~2분 뒤 목록에서 종료로 바뀌는지 본다.

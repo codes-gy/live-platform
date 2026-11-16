@@ -33,9 +33,6 @@ app:
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:12h}
   cookie:
     secure: ${COOKIE_SECURE:false}
-  test-accounts:
-    enabled: ${TEST_ACCOUNTS_ENABLED:true}
-    password: ${TEST_ACCOUNT_PASSWORD:test1234!}
   livekit:
     url: ${LIVEKIT_URL:}
     api-key: ${LIVEKIT_API_KEY:}
