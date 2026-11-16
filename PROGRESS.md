@@ -197,6 +197,11 @@
   - 상시 운영(다이노 1 유지, `dyno-schedule` 비활성 유지). 문서(DEPLOY 전면 개편 · ARCHITECTURE 1 · 5절 · README · REQUIREMENTS 11 · 23)를 Heroku + Neon 기준으로, 자체 호스팅은 대안 절로
   - 이 PC 정리 상태: compose 컨테이너 정지(볼륨 `jiing_pgdata` 남음), Tailscale 설치 · 로그인(기기 jiing-live) 상태로 남음 — 필요 없으면 사용자가 제거
 
+- [x] (11-17) E2E 저장소화 · 화면 보완: 브랜치 `chore/progress-11-17`
+  - `frontend/e2e`(Playwright Test 1.56.1, `npm run e2e`, `E2E_BASE_URL`): `auth.spec.ts`(비로그인 목록 · 보호 화면 → 로그인 · API 401 · 다른 사용자 수정/삭제/start 403 · "송출할 권한이 없습니다"), `live.spec.ts`(카메라 송출 → LIVE → 비로그인 시청 영상 · 오디오 → 다른 사용자 댓글 SSE 실시간 → 종료 확인 버튼 → ENDED · 시청 화면 종료). **운영(Heroku) 4/4 통과**. tsconfig에서 e2e 제외(Next 빌드와 분리), CI에는 넣지 않음(서버 · LiveKit 필요)
+  - 휴대폰 헤더: "내 방송" 항상 표시, 닉네임은 sm 이상만, 버튼 줄바꿈 방지. 상세: `ShareBroadcast`(링크 복사 · "휴대폰으로 보기" QR, `qrcode` 1.5.4 MIT, 종료 방송엔 숨김). 로그인: 테스트 계정 카드를 위로 + 강조 테두리
+  - 확인: lint 통과, Docker 프론트 빌드 통과, iPhone 13 에뮬레이션 스크린샷(가로 넘침 0, QR · 복사 동작). 로컬 compose 스택은 PUBLIC_URL=http://localhost:3300으로 화면 확인용 실행 중
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
@@ -214,7 +219,7 @@
 - (11-15) 사용자 질문 "외부 서비스 의존을 줄일 수 없나" → 선택지 비교만 함(코드 변경 없음): ① LiveKit 오픈소스 서버 자체 호스팅(VPS · UDP 포트 필요, 코드 변경 거의 없음, Heroku는 UDP 불가) ② 직접 구현 HLS(MediaRecorder → WebSocket → ffmpeg 리먹싱, Heroku 가능, 지연 3~10초, #3 · #5 · #7 · #8 재작성) ③ P2P WebRTC(STUN/TURN 필요, 시청자 늘면 방송자 업로드 폭증). 추천: 마감 전엔 LiveKit Cloud 유지, 자립이 필요하면 ①. **사용자 결정 대기**
 
 ## 다음 작업 (순서대로)
-0. (11-17) README + 운영 문서 PR 머지(사용자 승인) → **LiveKit 웹훅 URL 등록**(사용자, `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`) → 실제 휴대폰 송출 확인 → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
+0. (11-17) ~~README + 운영 문서 PR~~ **PR #37 develop 머지 완료(이슈 #14 닫힘)** → **LiveKit 웹훅 URL 등록**(사용자, `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`) → 실제 휴대폰 송출 확인 → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)

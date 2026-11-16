@@ -14,7 +14,7 @@
 | 백엔드 | Java 25 · Spring Boot 4.1.2 · Spring Security · JPA · Flyway · springdoc | 인증 · 인가 · 방송 상태 관리 · LiveKit 제어를 맡는 API 서버 |
 | DB | PostgreSQL 18 | 방송 정보 영구 저장(재시작 후 조회). 스키마는 Flyway 마이그레이션으로 관리 |
 | 스트리밍 | **LiveKit Cloud** (WebRTC SFU) | 미디어 서버를 직접 운영하지 않고 1:N 저지연 송출을 얻는다. 서버는 토큰 발급 · 방 생성/삭제 · 웹훅만 담당 |
-| 테스트 | JUnit 5 · Testcontainers PostgreSQL · MockMvc · Playwright(E2E, 저장소 밖) | 실제 DB로 통합 테스트, LiveKit은 가짜 클라이언트로 대체 |
+| 테스트 | JUnit 5 · Testcontainers PostgreSQL · MockMvc · Playwright(E2E, `frontend/e2e`, 실행 중인 서버 대상 수동 실행) | 실제 DB로 통합 테스트, LiveKit은 가짜 클라이언트로 대체 |
 | CI | GitHub Actions | PR마다 백엔드 `./gradlew test` + 프론트 lint · build |
 | 배포 | Heroku 컨테이너(프론트 · 백엔드 앱 2개, Basic 다이노) + **Neon PostgreSQL** (#9). 대안: Docker Compose 자체 호스팅 | HTTPS 자동(모바일 카메라 · 화면 공유는 보안 컨텍스트에서만 동작). DB를 앱 밖에 두어 앱을 다시 만들어도 데이터 유지. GitHub 학생 크레딧 사용 |
 
