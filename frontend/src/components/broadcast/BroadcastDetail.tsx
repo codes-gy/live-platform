@@ -80,7 +80,10 @@ export function BroadcastDetail({ id }: { id: number }) {
         <header className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <StatusBadge status={b.status} />
-            <span className="text-sm text-muted">{b.owner.nickname}</span>
+            <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted">
+              <Avatar user={b.owner} size="sm" />
+              <span className="truncate">{b.owner.nickname}</span>
+            </span>
           </div>
           <h1 className="text-xl font-bold break-words sm:text-2xl">{b.title}</h1>
           <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
