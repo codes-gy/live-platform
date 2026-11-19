@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDateTime, formatDuration, loadBroadcast, type Broadcast, type BroadcastLoad } from "@/lib/broadcast";
 import { Avatar } from "../Avatar";
 import { CommentPanel } from "../comment/CommentPanel";
+import { BroadcastRecordings } from "../recording/BroadcastRecordings";
 import { DonationPanel } from "../donation/DonationPanel";
 import { Notice } from "../ui";
 import { LivePlayer } from "./LivePlayer";
@@ -111,6 +112,7 @@ export function BroadcastDetail({ id }: { id: number }) {
           </dl>
           <OwnerActions broadcast={b} />
           {b.status !== "ENDED" && <ShareBroadcast />}
+          {b.status === "ENDED" && <BroadcastRecordings broadcastId={b.id} />}
         </header>
 
         {b.description && (

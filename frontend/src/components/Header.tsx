@@ -33,6 +33,9 @@ export function Header() {
             <Link href="/" className="hidden hover:text-fg sm:inline">
               방송 목록
             </Link>
+            <Link href="/recordings" className="whitespace-nowrap hover:text-fg">
+              다시보기
+            </Link>
             {user && (
               <Link href="/my" className="whitespace-nowrap hover:text-fg">
                 내 방송

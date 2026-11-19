@@ -37,6 +37,7 @@ public enum ErrorCode {
 	PAYMENT_REJECTED(HttpStatus.BAD_REQUEST, "결제가 승인되지 않았습니다."),
 	PAYMENT_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "결제 서버와 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 	PAYMENT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "결제 설정이 없어 후원할 수 없습니다."),
+	RECORDING_NOT_FOUND(HttpStatus.NOT_FOUND, "녹화를 찾을 수 없습니다."),
 
 	LIVEKIT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "방송 서버 설정이 없어 송출 · 시청할 수 없습니다."),
 	LIVEKIT_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "방송 서버와 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
