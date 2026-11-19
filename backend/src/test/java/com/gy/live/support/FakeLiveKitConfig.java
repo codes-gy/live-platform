@@ -12,4 +12,10 @@ public class FakeLiveKitConfig {
 	FakeLiveKitRoomClient fakeLiveKitRoomClient() {
 		return new FakeLiveKitRoomClient();
 	}
+
+	@Bean
+	@Primary
+	FakeTossPaymentsClient fakeTossPaymentsClient() {
+		return new FakeTossPaymentsClient();
+	}
 }

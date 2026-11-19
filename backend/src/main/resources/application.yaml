@@ -43,3 +43,7 @@ app:
     # 웹훅이 유실돼 LIVE로 남은 방송을 찾는 주기(LiveReconcileScheduler)
     reconcile-interval: 1m
     token-ttl: 1h
+  # 도네이션(토스페이먼츠 테스트 모드). 비어 있으면 후원 주문 · 승인 API가 503
+  toss:
+    client-key: ${TOSS_CLIENT_KEY:}
+    secret-key: ${TOSS_SECRET_KEY:}
