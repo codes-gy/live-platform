@@ -288,9 +288,9 @@ stateDiagram-v2
 - 카메라: 휴대폰에서 60fps가 불안정해 30fps, 최상위 층 2.5Mbps, 보조 층(180p · 360p)도 30fps.
 - 시청: `adaptiveStream: { pixelDensity: "screen" }`로 화면 해상도에 맞는 층을 받는다(`LivePlayer`).
 
-## 7. 선택 기능 설계 (미구현)
+## 7. 선택 기능 설계
 
-### 7.1 도네이션 (#12, 토스페이먼츠 테스트 모드)
+### 7.1 도네이션 (#12, 토스페이먼츠 테스트 모드, 구현됨)
 
 ```mermaid
 sequenceDiagram
@@ -314,6 +314,7 @@ sequenceDiagram
 - 금액 · 대상은 **서버에 저장한 주문**과 대조한다(클라이언트 값 불신).
 - 같은 승인 통지가 반복돼도 `payment_key` · `order_id` 유니크 제약과 주문 상태 확인으로 한 번만 적립한다.
 - 방송별 후원 내역 · 합계 조회 API, 상세 화면에 합계 표시.
+- 구현: 주문 · 결과를 `donations` 한 테이블(V7, `status` PENDING → DONE)에 둔다. 주문은 로그인 · 방송 중 · 자기 방송 아님 · 1천~100만 원. 승인은 주문 행을 `FOR UPDATE`로 잠그고, 이미 DONE이면 같은 `paymentKey`는 그대로 성공(토스 재호출 없음) · 다른 키는 409. 토스 승인 요청에 `Idempotency-Key: orderId`. API: `POST /api/broadcasts/{id}/donations/orders` · `POST /api/donations/confirm` · `GET /api/broadcasts/{id}/donations`(공개). 결제창 복귀 화면 `/donations/success` · `/donations/fail`
 
 ### 7.2 녹화 · 다시보기 (#13)
 
@@ -342,5 +343,5 @@ sequenceDiagram
 - 로그아웃은 쿠키만 지운다. 무상태 JWT라 이미 복사된 토큰은 만료(12시간)까지 유효하다.
 - 시스템 소리는 브라우저 · OS 제약(Windows Chrome/Edge만)을 따른다.
 - 세로 카메라 영상은 16:9 플레이어 안에 좌우 여백을 두고 표시된다.
-- 선택 기능 중 도네이션 · 녹화는 구현하지 않았다(7절은 설계만).
+- 선택 기능 중 녹화는 구현하지 않았다(7.2절은 설계만).
 - 시청자 수는 LiveKit 방 정보 갱신 주기와 3초 폴링 때문에 몇 초 늦게 바뀐다. 목록 카드에는 없다(서버가 방마다 참가자 수를 물어야 함).

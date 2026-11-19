@@ -9,8 +9,22 @@ public record AppProperties(
 		List<String> corsAllowedOrigins,
 		Jwt jwt,
 		Cookie cookie,
-		Livekit livekit
+		Livekit livekit,
+		Toss toss
 ) {
+
+	/**
+	 * 토스페이먼츠(API 개별 연동, 테스트 모드 키 test_ck_ · test_sk_).
+	 *
+	 * @param clientKey 결제창을 여는 공개 키(브라우저에 내려준다)
+	 * @param secretKey 결제 승인용 비밀 키(서버에서만 쓴다)
+	 */
+	public record Toss(String clientKey, String secretKey) {
+
+		public boolean configured() {
+			return clientKey != null && !clientKey.isBlank() && secretKey != null && !secretKey.isBlank();
+		}
+	}
 
 	/** secret은 HS256 서명용으로 32바이트 이상이어야 한다. */
 	public record Jwt(String secret, Duration accessTokenTtl) {

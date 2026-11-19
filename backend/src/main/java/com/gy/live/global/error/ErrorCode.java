@@ -30,6 +30,14 @@ public enum ErrorCode {
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
 	NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "댓글 작성자만 할 수 있습니다."),
 
+	DONATION_NOT_FOUND(HttpStatus.NOT_FOUND, "후원 주문을 찾을 수 없습니다."),
+	CANNOT_DONATE_SELF(HttpStatus.BAD_REQUEST, "자기 방송에는 후원할 수 없습니다."),
+	DONATION_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 다릅니다."),
+	DONATION_ALREADY_DONE(HttpStatus.CONFLICT, "이미 결제가 끝난 주문입니다."),
+	PAYMENT_REJECTED(HttpStatus.BAD_REQUEST, "결제가 승인되지 않았습니다."),
+	PAYMENT_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "결제 서버와 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+	PAYMENT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "결제 설정이 없어 후원할 수 없습니다."),
+
 	LIVEKIT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "방송 서버 설정이 없어 송출 · 시청할 수 없습니다."),
 	LIVEKIT_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "방송 서버와 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
 	INVALID_WEBHOOK(HttpStatus.UNAUTHORIZED, "웹훅 서명이 올바르지 않습니다.");

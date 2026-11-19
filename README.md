@@ -197,7 +197,8 @@ scripts/self-host.sh up                    # 대안: 한 대에서 DB까지 Dock
 - 로그아웃은 쿠키를 지웁니다. 무상태 JWT라 이미 복사해 둔 토큰은 만료(12시간)까지 유효합니다.
 - 시청자 수는 3초 간격으로 갱신되어 몇 초 늦을 수 있습니다.
 - 세로 카메라 영상은 16:9 플레이어 안에 좌우 여백을 두고 표시됩니다.
-- 선택 기능 중 도네이션 · 녹화는 구현하지 않았습니다(설계만 `docs/DESIGN.md` 7절).
+- 선택 기능 중 녹화는 구현하지 않았습니다(설계만 `docs/DESIGN.md` 7절).
+- 도네이션은 토스페이먼츠 **테스트 모드**입니다(실제 결제 없음). 운영에 쓰려면 `TOSS_CLIENT_KEY` · `TOSS_SECRET_KEY`를 설정해야 합니다.
 
 ## 오픈소스 및 출처
 - [LiveKit](https://github.com/livekit/livekit) (Apache-2.0) — 미디어 서버(LiveKit Cloud · 로컬 `livekit/livekit-server` 이미지)
