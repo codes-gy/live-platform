@@ -249,6 +249,11 @@
   - **못 한 것**: 실제 토스 테스트 키로 결제창 → 승인 E2E(키 미설정), 운영 배포(Heroku api에 `TOSS_*` 설정 + Flyway V7 + web 배포 필요)
   - 문서: REQUIREMENTS 17~19 ✅(별도 브랜치 표기) · DESIGN 7.1 구현 내용 · README 알려진 한계(도네이션 테스트 모드) · `.env.example`
 
+- [x] (11-20 새벽) **#12 도네이션 머지 · 운영 배포**(제출 마감 후): 다른 세션(shiner-41)이 같은 워크트리에서 구현한 커밋 281e464를 인계받아 PR #63 → CI 통과 → develop 머지. Heroku api에 TOSS_CLIENT_KEY · TOSS_SECRET_KEY(test_ 키, A: `.env`) 설정, api v18(Flyway V7 Neon 적용) · web v16 배포
+  - 운영 확인: 자기 방송 후원 주문 400, 다른 사용자 주문 200(orderId · test_ck 클라이언트 키), 금액 불일치 승인 400, 합계 API 200, 상세 후원 패널 → 토스 샌드박스 결제창(5,000원, "실제 결제가 안되는 테스트") 열림
+  - **미확인**: 결제창에서 실제 테스트 결제 → 승인 → 적립까지(샌드박스 화면 자동 조작 실패). 사용자 수동 확인 필요. 이슈 #12는 main 반영 전이라 열린 상태
+  - **main은 제출본(105e219) 그대로 둠**(마감 후 변경 여부 사용자 결정)
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
