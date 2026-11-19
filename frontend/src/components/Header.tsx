@@ -1,0 +1,76 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "./auth/AuthProvider";
+import { Avatar } from "./Avatar";
+import { Logo } from "./Logo";
+
+export function Header() {
+  const { user, status, logout } = useAuth();
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+
+  const onLogout = async () => {
+    setPending(true);
+    try {
+      await logout();
+      router.push("/");
+      router.refresh();
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex items-center gap-6">
+          <Logo />
+          {/* 좁은 화면에서는 로고가 목록으로 가므로 "방송 목록"만 숨기고 "내 방송"은 남긴다 */}
+          <nav className="flex items-center gap-4 text-sm text-muted">
+            <Link href="/" className="hidden hover:text-fg sm:inline">
+              방송 목록
+            </Link>
+            {user && (
+              <Link href="/my" className="whitespace-nowrap hover:text-fg">
+                내 방송
+              </Link>
+            )}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm" aria-live="polite">
+          {status === "loading" && <span className="h-8 w-24 animate-pulse rounded-md bg-surface-2" />}
+          {status === "anonymous" && (
+            <>
+              <Link href="/login" className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted hover:text-fg">
+                로그인
+              </Link>
+              <Link href="/signup" className="whitespace-nowrap rounded-md bg-surface-2 px-3 py-1.5 font-medium hover:bg-line">
+                회원가입
+              </Link>
+            </>
+          )}
+          {user && (
+            <>
+              <Link href="/my" className="flex items-center gap-2 rounded-md px-1.5 py-1 font-medium hover:bg-surface-2" aria-label={`${user.nickname} 내 정보`}>
+                <Avatar user={user} size="sm" />
+                <span className="hidden max-w-32 truncate sm:block">{user.nickname}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={onLogout}
+                disabled={pending}
+                className="whitespace-nowrap rounded-md px-3 py-1.5 text-muted hover:text-fg disabled:opacity-50"
+              >
+                로그아웃
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}

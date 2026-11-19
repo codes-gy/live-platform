@@ -1,0 +1,2 @@
+# 셸 스크립트는 리눅스 컨테이너 · WSL에서 실행되므로 Windows 체크아웃에서도 LF 유지
+*.sh text eol=lf
