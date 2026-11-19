@@ -231,6 +231,14 @@
   - API: `PUT /api/broadcasts/{id}/thumbnail`(소유자 · LIVE · JPEG 300KB 이하 · FF D8 FF 검사), `GET` 공개(max-age 30). 대안 LiveKit Egress(유료) · 파일 저장(Heroku 디스크 휘발) 제외
   - 테스트 109개(썸네일 6개). 로컬 전체 스택(임시 Postgres 5433 — 5432는 다른 프로젝트 kidly-postgres가 사용 중) + 운영에서 확인: 시작 8초 안에 200 image/jpeg 약 10KB, 30초 뒤 갱신, 카드 480px 표시, 방송 삭제 시 404
 
+- [x] (11-19 밤) 제출 마무리(Windows 워크트리 세션)
+  - PR #57(상세 방송자 줄 프로필 사진, 이슈 #56) · PR #59(로그인 · 회원가입 · 방송 폼 `method="post"`: 하이드레이션 전 제출 시 `/login?email=…&password=…`로 비밀번호가 주소에 남던 문제, 시연 녹화 중 발견) develop 머지 · 운영 web 배포(v15) · 운영 E2E 4/4
+  - **develop → main 반영(PR #58 · #60), 저장소 기본 브랜치 main으로 변경**(공개)
+  - 시연 영상 자동 녹화: Playwright로 운영 주소에서 시연 계정 흐름 녹화(방송자 PC · 비로그인 시청자 · iPhone 13 에뮬레이션) → ffmpeg로 1920x1080 합성(장면 제목 · 자막). PC 송출은 사용자가 고른 유튜브 탭을 실제 크롬(`channel: chrome`, `--auto-select-tab-capture-source-by-title=- YouTube`)에서 자동 공유, 녹화 PC 실제 마이크는 끔. 결과 `Desktop\jiing-demo-youtube.mp4`(1분 28초, 소리 없음) · 예비 `Desktop\jiing-demo.mp4`(가짜 화면). **주의**: `--use-fake-ui-for-media-stream`을 함께 쓰면 탭이 아니라 PC 전체 화면이 공유됨(시험 중 발견, 송출 안 함). 자동화 Chromium에서는 유튜브가 재생 오류를 냄 → 설치된 Chrome 사용
+  - Heroku 배포 함정 재확인: Platform API로 release는 `Accept: …version=3.docker-releases` 필수(scratchpad `heroku/deploy.sh`)
+  - 운영 정리: 녹화 실패로 남은 READY 방송 #46 삭제. 시연 방송 #47 · #48 · #53~#56은 목록 썸네일용으로 남김
+  - README 시연 영상 칸은 설명만 있고 **링크 미기재**(사용자 업로드 대기)
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
@@ -248,7 +256,8 @@
 - (11-15) 사용자 질문 "외부 서비스 의존을 줄일 수 없나" → 선택지 비교만 함(코드 변경 없음): ① LiveKit 오픈소스 서버 자체 호스팅(VPS · UDP 포트 필요, 코드 변경 거의 없음, Heroku는 UDP 불가) ② 직접 구현 HLS(MediaRecorder → WebSocket → ffmpeg 리먹싱, Heroku 가능, 지연 3~10초, #3 · #5 · #7 · #8 재작성) ③ P2P WebRTC(STUN/TURN 필요, 시청자 늘면 방송자 업로드 폭증). 추천: 마감 전엔 LiveKit Cloud 유지, 자립이 필요하면 ①. **사용자 결정 대기**
 
 ## 다음 작업 (순서대로)
-0. (11-17) ~~README + 운영 문서 PR~~ **PR #37 develop 머지 완료(이슈 #14 닫힘)** → ~~LiveKit 웹훅 URL 등록~~ **11-19 사용자 등록 완료**(`…/api/livekit/webhook`, 서명 없는 요청 401 · api health UP 확인. 실제 수신은 휴대폰 송출 때 탭 닫기 → 즉시 종료로 확인) → ~~실제 휴대폰 송출 확인~~ **11-19 사용자 확인 완료**(운영 주소, "잘 된다". 탭 닫기 → 웹훅 즉시 종료 여부는 따로 보고받지 않음) → (11-19 화질 개선 · 전체 점검 수정 배포 완료, 실제 휴대폰 · PC로 화질 재확인 필요) → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
+0. (11-19 23:20) **사용자: 시연 영상 유튜브 일부 공개 업로드 → 링크 전달 → Claude가 README 시연 영상 칸에 링크 → develop · main 반영 → 저장소 URL 제출**(https://github.com/codes-gy/live-platform, 23:59 마감). 링크가 늦으면 먼저 제출
+0-1. 제출 후: #12 도네이션(토스 공개 테스트 키) · #13 녹화(R2 키 필요) 별도 브랜치. 운영 DB의 예전 `streamer@test.com` · `viewer@test.com`(공개 비밀번호) · E2E 계정 정리 여부 사용자 확인
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)
