@@ -3,8 +3,8 @@
 실시간 라이브 방송을 송출 · 시청하는 웹 서비스의 시스템 구성과 코드 구조를 정리한다.
 도메인 설계(상태 · 권한 · API · 흐름)는 [`DESIGN.md`](DESIGN.md), 요구사항별 진행 상태는 [`REQUIREMENTS.md`](REQUIREMENTS.md)를 본다.
 
-- 기준: 2026-11-12, 브랜치 `feature/live/#7-pc-broadcast`
-- 표기: **(예정)** 은 아직 구현하지 않은 부분
+- 기준: 2026-11-19, 브랜치 `main`
+- 표기: **(미구현)** 은 설계만 있고 구현하지 않은 선택 기능
 
 ## 1. 기술 스택
 
@@ -82,12 +82,17 @@ flowchart LR
 live-platform/
 ├── backend/                  Spring Boot API 서버
 ├── frontend/                 Next.js 웹 앱
-├── docs/                     요구사항 · 아키텍처 · 설계 문서
-├── .github/                  CI(workflows/ci.yml), 이슈 · PR 템플릿
+├── frontend/e2e/             Playwright 브라우저 E2E (실행 중인 서버 대상)
+├── docs/                     요구사항 · 아키텍처 · 설계 · 배포 문서
+├── scripts/                  deploy-heroku.sh · heroku-livekit-config.sh · self-host.sh
+├── .github/                  CI(workflows/ci.yml) · 운영 시간 예약(dyno-schedule.yml, 꺼 둠), 이슈 · PR 템플릿
 ├── docker-compose.yml        로컬 PostgreSQL (+ 선택: 로컬 LiveKit dev 서버, profile livekit)
-├── .env.example              환경변수 예시 (실제 .env는 커밋 금지)
+├── docker-compose.prod.yml   자체 호스팅용 PostgreSQL · Spring · Next.js (대안 배포)
+├── .env.example              로컬 환경변수 예시 (실제 .env는 커밋 금지)
+├── .env.prod.example         자체 호스팅 환경변수 예시
 ├── PROGRESS.md               작업 진행 기록
-└── README.md                 실행 방법 · 기능 확인 절차 (#14에서 완성)
+├── LICENSE                   MIT
+└── README.md                 서비스 주소 · 테스트 계정 · 실행 방법 · 기능 확인 절차
 ```
 
 ### 4.1 백엔드 패키지 (`backend/src/main/java/com/gy/live`)
@@ -96,9 +101,8 @@ live-platform/
 
 ```
 com.gy.live
-├── auth/            회원가입 · 로그인 · 테스트 로그인 · 로그아웃 · 내 정보
+├── auth/            회원가입 · 로그인 · 로그아웃 · 내 정보
 │   ├── AuthController, AuthService
-│   ├── TestAccount, TestAccountInitializer   심사용 계정을 시작 시 생성
 │   └── dto/
 ├── user/            User 엔티티 · UserRepository
 ├── broadcast/       방송 정보와 라이브 상태
@@ -107,6 +111,8 @@ com.gy.live
 │   ├── BroadcastController / BroadcastService            CRUD, 소유자 확인 findOwned
 │   ├── BroadcastLiveController / BroadcastLiveService    start · publisher-token · end · viewer-token
 │   ├── LiveKitWebhookController                          room_finished · participant_left 처리
+│   ├── LiveReconcileScheduler                            1분마다 LIVE 방송을 LiveKit과 대조(reconcileLive, #34)
+│   ├── LiveBroadcastRef                                  정리 대상 조회용 (id, ownerId)
 │   ├── BroadcastEndedEvent                               종료 시 발행(댓글 SSE 종료 등)
 │   └── dto/
 ├── comment/         방송별 댓글 + SSE
@@ -209,7 +215,7 @@ flowchart LR
 - 운영 시간 예약(`.github/workflows/dyno-schedule.yml`, 09~20시 KST)은 심사 기간 상시 운영을 위해 꺼 두었다.
 - **대안: 자체 호스팅** — `docker-compose.prod.yml`(PostgreSQL · Spring · Next.js, 프론트만 `127.0.0.1:3300`) + `scripts/self-host.sh`(Tailscale Funnel로 HTTPS 공개). 호스팅 업체 없이 한 대에서 전부 띄울 수 있다. Cloudflare 임시 터널은 SSE를 지원하지 않아 제외했다(DEPLOY.md 2절).
 - 셸 스크립트는 `.gitattributes`로 LF를 강제한다(Windows 체크아웃의 CRLF 때문에 컨테이너에서 entrypoint가 실행되지 않았다).
-- 녹화 **(예정, #13)**: LiveKit Egress → S3 호환 스토리지.
+- 녹화 **(미구현, #13)**: 설계는 LiveKit Egress → S3 호환 스토리지([DESIGN.md](DESIGN.md) 7.2절).
 
 ## 6. 설정 · 환경변수
 

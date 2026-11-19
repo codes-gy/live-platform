@@ -1,11 +1,14 @@
 # 지이잉 (live-platform)
 
+[![CI](https://github.com/codes-gy/live-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/codes-gy/live-platform/actions/workflows/ci.yml)
+
 PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다른 기기에서 로그인 없이 실시간으로 시청하는 웹 서비스입니다.
 
 | | |
 |---|---|
 | 서비스 주소 | **https://onair-live-web-28fc2f0d1715.herokuapp.com** |
-| 운영 | 상시 운영. 오래 접속이 없었다면 첫 요청이 1~2초 늦을 수 있습니다(DB 대기 해제) |
+| API 문서 | [Swagger UI](https://onair-live-api-daf462a2a9af.herokuapp.com/swagger-ui/index.html) (운영 백엔드) |
+| 운영 | 상시 운영(Heroku + Neon PostgreSQL). 오래 접속이 없었다면 첫 요청이 1~2초 늦을 수 있습니다(DB 대기 해제) |
 | 시연 영상 | _(링크 추가 예정)_ |
 | 테스트 계정 | 아래 [테스트 계정](#테스트-계정) 참고 |
 
@@ -13,7 +16,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 
 | 영역 | 기능 |
 |---|---|
-| PC 방송 | 화면(탭 · 창 · 전체 화면) 공유 + 탭/시스템 소리 + 마이크 동시 송출, 송출 중 화면 바꾸기 · 마이크 음소거, 마이크 음량 표시 |
+| PC 방송 | 화면(탭 · 창 · 전체 화면) 공유 + 탭/시스템 소리 + 마이크 동시 송출(최대 1080p 60fps), 송출 중 화면 바꾸기 · 마이크 음소거, 마이크 음량 표시 |
 | 모바일 방송 | 휴대폰 카메라 + 마이크 송출, 전면/후면 카메라 전환, 방송 중 화면 꺼짐 방지 |
 | 시청 | 목록(방송 중 · 전체 · 종료) → 상세에서 바로 재생, 로그인 불필요, 시청자 수 · 소리 켜기 · 전체 화면 |
 | 방송 관리 | 등록 · 수정 · 삭제, 상태 `방송 전 → 방송 중 → 종료`, 종료 시 송출 연결 즉시 끊김, 새로고침해도 30초 안에 "방송 재개" |
@@ -82,7 +85,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 
 | 기능 | 지원 | 비고 |
 |---|---|---|
-| PC 화면 공유 | Chrome · Edge (최신) | Firefox · Safari는 화면은 되지만 소리 공유 미지원 |
+| PC 화면 공유 | Chrome · Edge (최신) | 최대 1080p 60fps. Firefox · Safari는 화면은 되지만 소리 공유 미지원 |
 | 탭 소리 | Chrome · Edge의 **탭** 공유 | |
 | 시스템 소리 | **Windows** Chrome · Edge의 **전체 화면** 공유 | macOS는 OS 제약으로 시스템 소리 불가 → 탭 소리 사용 |
 | 모바일 송출 | iOS Safari 15+ · Android Chrome | HTTPS 필수 |
@@ -95,7 +98,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 | Backend | Java 25, Spring Boot 4.1, Spring Security(JWT HttpOnly 쿠키), Spring Data JPA, PostgreSQL 18, Flyway, springdoc(Swagger) |
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | Streaming | LiveKit (WebRTC SFU) — `livekit-client`, `@livekit/components-react`, `livekit-server` Java SDK |
-| Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 104개 |
+| Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 103개 |
 | Infra | Heroku(컨테이너), Neon(PostgreSQL), LiveKit Cloud, GitHub Actions(CI) |
 
 ## 구조
@@ -122,7 +125,7 @@ flowchart LR
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — 운영 배포 절차 · 배포 후 확인 · 되돌리기
 - [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — 공모전 요구사항 항목별 구현 상태
 
-API 명세는 백엔드 실행 후 Swagger(`http://localhost:8080/swagger-ui/index.html`)에서 볼 수 있습니다.
+API 명세는 [운영 Swagger](https://onair-live-api-daf462a2a9af.herokuapp.com/swagger-ui/index.html) 또는 로컬 백엔드 실행 후 `http://localhost:8080/swagger-ui/index.html`에서 볼 수 있습니다.
 
 ## 로컬 실행 방법
 
@@ -164,9 +167,9 @@ npm run dev                                # http://localhost:3000
 
 ### 3. 테스트
 ```bash
-cd backend && ./gradlew test               # Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
-cd frontend && npm run lint && npm run build
-E2E_BASE_URL=http://localhost:3000 npm run e2e   # 브라우저 E2E (실행 중인 서버 필요, frontend/e2e/README.md)
+(cd backend && ./gradlew test)                 # 103개, Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
+(cd frontend && npm run lint && npm run build)
+(cd frontend && E2E_BASE_URL=http://localhost:3000 npm run e2e)   # 브라우저 E2E (실행 중인 서버 필요, frontend/e2e/README.md)
 ```
 
 백엔드 테스트는 비로그인 · 소유자 · 다른 사용자별 허용/거절, 상태 전이, 웹훅 서명 위조 · 중복, 방송자 이탈 유예, 주기 정리, 댓글 권한 · SSE를 검증합니다. LiveKit 호출은 테스트용 가짜 구현(`FakeLiveKitRoomClient`)으로 대체합니다. PR마다 GitHub Actions(`.github/workflows/ci.yml`)가 같은 검사를 실행합니다.
@@ -190,9 +193,11 @@ scripts/self-host.sh up                    # 대안: 한 대에서 DB까지 Dock
 
 ## 알려진 한계
 - 방송자 이탈 유예와 댓글 SSE 구독은 서버 메모리에 있어 **서버 1대** 기준입니다(여러 대면 Redis pub/sub 필요). 유예 예약이 재시작으로 사라져도 1분 주기 점검이 정리합니다.
+- 로그인 · 댓글 · 댓글 스트림(SSE)에 요청 횟수 제한(rate limit)이 없습니다.
+- 로그아웃은 쿠키를 지웁니다. 무상태 JWT라 이미 복사해 둔 토큰은 만료(12시간)까지 유효합니다.
 - 시청자 수는 3초 간격으로 갱신되어 몇 초 늦을 수 있습니다.
 - 세로 카메라 영상은 16:9 플레이어 안에 좌우 여백을 두고 표시됩니다.
-- 선택 기능 중 도네이션 · 녹화는 구현하지 않았습니다.
+- 선택 기능 중 도네이션 · 녹화는 구현하지 않았습니다(설계만 `docs/DESIGN.md` 7절).
 
 ## 오픈소스 및 출처
 - [LiveKit](https://github.com/livekit/livekit) (Apache-2.0) — 미디어 서버(LiveKit Cloud · 로컬 `livekit/livekit-server` 이미지)
@@ -201,3 +206,7 @@ scripts/self-host.sh up                    # 대안: 한 대에서 DB까지 Dock
 - [Pretendard](https://github.com/orioncactus/pretendard) (SIL OFL-1.1) — 글꼴, jsDelivr CDN으로 로드
 - [Spring Boot](https://spring.io/projects/spring-boot) · [Next.js](https://nextjs.org) · [jjwt](https://github.com/jwtk/jjwt) · [springdoc-openapi](https://springdoc.org) · [Testcontainers](https://testcontainers.com) 등 각 라이브러리는 해당 라이선스를 따릅니다
 - 개발에 AI 도구(Claude Code)를 활용했습니다
+
+## 라이선스
+
+[MIT](LICENSE)
