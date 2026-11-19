@@ -69,6 +69,15 @@ class BroadcastThumbnailControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.IMAGE_JPEG))
 				.andExpect(content().bytes(next));
+		// 목록 · 상세 응답이 썸네일 갱신 시각을 실어, 카드가 없는 썸네일을 요청하지 않게 한다
+		mockMvc.perform(get("/api/broadcasts/" + broadcastId))
+				.andExpect(jsonPath("$.thumbnailUpdatedAt").isNotEmpty());
+	}
+
+	@Test
+	void 썸네일이_없으면_응답의_갱신_시각은_null() throws Exception {
+		mockMvc.perform(get("/api/broadcasts/" + broadcastId))
+				.andExpect(jsonPath("$.thumbnailUpdatedAt").doesNotExist());
 	}
 
 	@Test

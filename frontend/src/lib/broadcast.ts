@@ -12,6 +12,8 @@ export type Broadcast = {
   endedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 썸네일이 없으면 null. 썸네일 주소의 버전으로 쓴다 */
+  thumbnailUpdatedAt: string | null;
 };
 
 export type Page<T> = {

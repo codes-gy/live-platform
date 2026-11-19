@@ -51,6 +51,10 @@ public class Broadcast {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	/** 썸네일 업로드가 직접 SQL로 바꾼다. 엔티티 저장이 이 값을 덮어쓰지 않게 읽기 전용으로 둔다. */
+	@Column(insertable = false, updatable = false)
+	private Instant thumbnailUpdatedAt;
+
 	protected Broadcast() {
 	}
 
@@ -145,5 +149,9 @@ public class Broadcast {
 
 	public Instant getUpdatedAt() {
 		return updatedAt;
+	}
+
+	public Instant getThumbnailUpdatedAt() {
+		return thumbnailUpdatedAt;
 	}
 }

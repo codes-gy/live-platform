@@ -98,7 +98,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 | Backend | Java 25, Spring Boot 4.1, Spring Security(JWT HttpOnly 쿠키), Spring Data JPA, PostgreSQL 18, Flyway, springdoc(Swagger) |
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | Streaming | LiveKit (WebRTC SFU) — `livekit-client`, `@livekit/components-react`, `livekit-server` Java SDK |
-| Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 109개 |
+| Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 110개 |
 | Infra | Heroku(컨테이너), Neon(PostgreSQL), LiveKit Cloud, GitHub Actions(CI) |
 
 ## 구조
@@ -167,7 +167,7 @@ npm run dev                                # http://localhost:3000
 
 ### 3. 테스트
 ```bash
-(cd backend && ./gradlew test)                 # 109개, Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
+(cd backend && ./gradlew test)                 # 110개, Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
 (cd frontend && npm run lint && npm run build)
 (cd frontend && E2E_BASE_URL=http://localhost:3000 npm run e2e)   # 브라우저 E2E (실행 중인 서버 필요, frontend/e2e/README.md)
 ```

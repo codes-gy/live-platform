@@ -3,6 +3,7 @@ package com.gy.live.broadcast.thumbnail;
 import com.gy.live.broadcast.BroadcastService;
 import com.gy.live.global.error.BusinessException;
 import com.gy.live.global.error.ErrorCode;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,9 +27,9 @@ public class BroadcastThumbnailService {
 		if (image.length > MAX_BYTES || !isJpeg(image)) {
 			throw new BusinessException(ErrorCode.INVALID_THUMBNAIL);
 		}
-		thumbnailRepository.findById(broadcastId).ifPresentOrElse(
-				thumbnail -> thumbnail.replace(image),
-				() -> thumbnailRepository.save(new BroadcastThumbnail(broadcastId, image)));
+		Instant now = Instant.now();
+		thumbnailRepository.upsert(broadcastId, image, now);
+		thumbnailRepository.touchBroadcast(broadcastId, now);
 	}
 
 	@Transactional(readOnly = true)
