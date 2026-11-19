@@ -8,7 +8,7 @@
 ## 확정 결정 사항 (2026-11-05)
 | 항목 | 결정 |
 |---|---|
-| 폴더 | `/Users/podojjang/project/live-platform` (모노레포: `backend/`, `frontend/`) |
+| 폴더 | `<repo>` (모노레포: `backend/`, `frontend/`) |
 | 백엔드 | Java 25 · Spring Boot 4.1.2 · JPA · PostgreSQL 18 · Flyway · Spring Security + JWT · springdoc. Rust 전환 검토 후 **Spring 유지** 결정 |
 | 프론트 | Next.js 16.4.5 (App Router, TS, Tailwind 4) · livekit-client · @livekit/components-react |
 | 스트리밍 | **LiveKit Cloud** (WebRTC SFU). Spring은 토큰 발급·소유자 권한 검증·RoomService(송출 종료)·웹훅 처리 담당 |
@@ -182,7 +182,7 @@
 - [x] (11-16) 운영을 Heroku → 자체 호스팅으로 전환 시도(→ 11-17 Heroku + Neon으로 되돌림, 자체 호스팅은 대안으로 유지): 브랜치 `chore/deploy/self-host-tunnel`(README 브랜치 위에 쌓음), 로컬 커밋 68e7ea5 · **push · PR 전**
   - 발견: Heroku `onair-live-api`의 Postgres가 **11-14 03:08 UTC 분리 · 삭제**(release v8 "Detach DATABASE", 애드온 0개) → 운영 백엔드 기동 불가. 사용자에게 물어 "Heroku 말고 다른 곳으로" → "이 PC + 터널" 선택
   - 사용자 "너가 해줘"로 운영 작업 위임(11-14의 "직접 배포하지 말 것" 지시를 이번에 해제). 먼저 Heroku에 LIVEKIT_* 3개를 Platform API(WSL `~/.netrc` 토큰)로 넣음 — 이후 Heroku는 안 쓰지만 값은 남아 있음. `dyno-schedule` 워크플로 **비활성화**(gh, Git 자격 증명 토큰 사용)
-  - 같은 PC 확인: WSL `/mnt/a/project/live-platform` = Windows `A:\project\live-platform`, 루트 `.env`에 LiveKit Cloud 키
+  - 같은 PC 확인: WSL `<repo>` = Windows `<repo>`, 루트 `.env`에 LiveKit Cloud 키
   - `docker-compose.prod.yml`(project `jiing`: postgres 18 · backend · frontend `127.0.0.1:3300`), `.env.prod`(gitignore, DB 비밀번호 · JWT 무작위, LiveKit은 A: `.env`에서 복사), `.env.prod.example`(`.gitignore`에 예외 추가), `scripts/self-host.sh [up|url|logs|down]`(Tailscale 주소 → PUBLIC_URL = CORS 반영, `tailscale funnel --bg 3300`), `.gitattributes`(`*.sh eol=lf` — CRLF로 entrypoint "no such file" 재시작 반복)
   - CORS 주의: Next rewrite가 브라우저 Origin을 그대로 넘겨 Spring CORS가 판단 → `CORS_ALLOWED_ORIGINS`에 공개 주소 필수
   - Cloudflare 임시 터널(trycloudflare)로 먼저 확인: API(테스트 로그인 Secure 쿠키 · 등록 · **LiveKit Cloud start → LIVE** · 시청 토큰 · 타인 종료 403 · 종료 ENDED · 삭제) + Playwright(scratchpad `e2e/live.mjs`: 카메라 송출 → 비로그인 시청 320x180 영상 · 오디오 → 종료 표시) 통과. 그러나 **SSE 0개**(45초) — 공식 문서상 Quick Tunnel은 SSE 미지원, 주소도 재시작마다 바뀜 → 사용자 선택으로 **Tailscale Funnel**
@@ -191,7 +191,7 @@
 
 - [x] (11-17) **운영 복구: Heroku + Neon PostgreSQL**
   - 11-17 새벽 확인 시 Heroku 다이노가 누군가에 의해 1로 켜져 있었고(DB 없어 api 503), 이 PC의 compose는 Docker 종료로 4시간 전 멈춤 · Funnel 미허용 → 사용자 제안 "heroku + neon db" 채택
-  - 사용자가 Neon 프로젝트(AWS us-east-1, 직접 연결) 생성 후 `A:\project\live-platform\.env`에 `NEON_DATABASE_URL` 추가 → Claude가 값 출력 없이 Heroku api에 `DB_URL`(jdbc …/neondb?sslmode=require) · `DB_USERNAME` · `DB_PASSWORD` 설정(Platform API, WSL `~/.netrc` 토큰)
+  - 사용자가 Neon 프로젝트(AWS us-east-1, 직접 연결) 생성 후 `<repo>\.env`에 `NEON_DATABASE_URL` 추가 → Claude가 값 출력 없이 Heroku api에 `DB_URL`(jdbc …/neondb?sslmode=require) · `DB_USERNAME` · `DB_PASSWORD` 설정(Platform API, WSL `~/.netrc` 토큰)
   - 최신 코드로 api · web 이미지 빌드 → 레지스트리 푸시 → formation release(heroku CLI 없이 scratchpad `heroku/deploy.sh`: docker.exe buildx + `imagetools inspect`로 config digest → PATCH formation). api health UP(Flyway V1~V3 Neon 적용)
   - 운영 주소 E2E 통과: 테스트 로그인 · 등록 · **LiveKit Cloud start → LIVE** · 종료 · 삭제, **댓글 SSE**(1초 안 `:connected`, 작성 즉시 `comment`), Playwright 카메라 송출 → 비로그인 시청 영상 · 오디오 → 종료 표시
   - 상시 운영(다이노 1 유지, `dyno-schedule` 비활성 유지). 문서(DEPLOY 전면 개편 · ARCHITECTURE 1 · 5절 · README · REQUIREMENTS 11 · 23)를 Heroku + Neon 기준으로, 자체 호스팅은 대안 절로
@@ -222,12 +222,12 @@
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
 - (11-12) 필수 기능 코드 전부 develop 반영(#1~#8). 선택 댓글(#11) 백엔드 + 프론트 완료. 화면 다듬기 #28 머지 완료(PR #29). 남은 것: 배포(#9, 호스팅 결정 대기) · README(#14) · 시연 영상 · 실기기 확인 · 선택 #12 도네이션 · #13 녹화
 - (11-12) 비용: 사용자가 LiveKit 비용을 문의 → Cloud 무료 Build 플랜(카드 불필요, 월 참가자 5,000분 · 내려받기 50GB · 동시 100명 · 녹화 60분, 초과 시 과금 대신 차단, 계정 단위)으로 충분하다고 답함. 코드 변경 없이 유지
-- (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 실행: `JAVA_HOME=~/Library/Java/JavaVirtualMachines/jbr-25.0.4.1/Contents/Home LIVEKIT_URL=ws://localhost:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret ./gradlew bootRun`. 프론트 `npm run dev`(3000) · E2E는 `next start -p 3100`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
+- (11-12) 로컬 macOS에는 루트 `.env`(LiveKit Cloud 키)가 없음 → `docker compose --profile livekit up -d`(devkey/secret, ws://localhost:7880). 백엔드 실행: `JAVA_HOME=<JDK 25 경로> LIVEKIT_URL=ws://localhost:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret ./gradlew bootRun`. 프론트 `npm run dev`(3000) · E2E는 `next start -p 3100`. 워크트리에서 `node_modules`를 심볼릭 링크하면 Turbopack 빌드 실패 → `npm ci`
 - (11-12) 로컬 DB에 11-05의 "CLI 송출 시험"(id 2)이 LIVE로 남아 있음(로컬은 웹훅 미연결이라 종료 신호를 못 받음). 운영에서도 웹훅 유실 시 같은 일이 생길 수 있어 정리 작업을 다음 작업에 넣음
 - (11-12) 문서: `docs/REQUIREMENTS.md`(요구사항 · 상태) · `docs/ARCHITECTURE.md` · `docs/DESIGN.md`. 미구현 부분(배포 #9 · 도네이션 #12 · 녹화 #13)은 **(예정)** 설계
 - 작업 방식(11-11): 메인 세션이 하위 세션(pstack:poteto-agent, worktree 격리)에 나눠 맡기고, 결과를 모아 사용자 승인 후 push · PR · 머지. 하위 세션은 로컬 커밋까지만, PROGRESS.md는 메인 세션만 수정
 - 대시보드: #1~#8 · #10 · #11 완료로 갱신 필요(미갱신)
-- 다른 개발 PC(WSL2, `/mnt/a/project/live-platform`): Java 25 `/usr/lib/jvm/java-25-openjdk-amd64`, 루트 `.env`에 LiveKit Cloud 키 있음 — `set -a; . ../.env; set +a` 후 bootRun
+- 다른 개발 PC(WSL2, `<repo>`): Java 25 `<JDK 25 경로>`, 루트 `.env`에 LiveKit Cloud 키 있음 — `set -a; . ../.env; set +a` 후 bootRun
 - E2E: scratchpad `e2e/`(저장소 밖) — `pc-broadcast.mjs` · `mobile-broadcast.mjs` · `comments.mjs` · `ui-polish.mjs` · `review.mjs`(스크린샷). Postgres + 백엔드(8080) + `next start -p 3100` 후 `node <파일>`
 
 - (11-15) 상태 점검: develop 최신 08d7de9(#35 머지). 이 Windows 워크트리(`shiner`, 브랜치 `gy/shiner`)에는 `gh` 로그인 · `heroku` CLI 없음. 운영 API health 503(운영 시간 외이거나 다이노 정지 추정, 미확인). 마감까지 4일

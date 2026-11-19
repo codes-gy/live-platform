@@ -30,7 +30,7 @@
 
 ### 1.2 LiveKit 웹훅
 
-LiveKit Cloud 대시보드 → **Settings** → **Webhooks**에 `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`을 등록한다. 서명 키는 운영에 넣은 것과 같은 API 키를 고른다(다르면 401 `INVALID_WEBHOOK`).
+LiveKit Cloud 대시보드 → **Settings** → **Webhooks**에 `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`을 등록한다. 서명 키는 운영에 넣은 것과 같은 API 키를 고른다(다르면 401 `INVALID_WEBHOOK`). 운영에는 11-19에 등록했다.
 
 웹훅이 없어도 방송은 된다. 방송자가 탭을 그냥 닫았을 때 웹훅이 있으면 30초 뒤, 없으면 주기적 정리 작업(#34)이 1~2분 뒤에 종료한다.
 
@@ -66,7 +66,9 @@ heroku logs -a onair-live-api --tail   # 시작 오류 · R14(메모리 초과) 
 7. 다시 방송을 시작한 뒤 송출 탭을 닫는다. 30초~2분 뒤 목록에서 종료로 바뀌는지 본다.
 8. 시험 방송을 삭제한다.
 
-11-17 확인 결과: health UP(Neon 연결 · Flyway V1~V3 적용), 테스트 로그인 · 등록 · **LiveKit Cloud 시작 → LIVE** · 종료 · 삭제, 댓글 SSE(구독 1초 안에 `:connected`, 작성 즉시 `comment` 이벤트), Playwright(가짜 카메라 · 마이크)로 카메라 송출 → 비로그인 시청자 영상 · 오디오 수신 → 종료 표시.
+11-17 확인 결과: health UP(Neon 연결 · Flyway V1~V3 적용), 테스트 계정 로그인 · 등록 · **LiveKit Cloud 시작 → LIVE** · 종료 · 삭제, 댓글 SSE(구독 1초 안에 `:connected`, 작성 즉시 `comment` 이벤트), Playwright(가짜 카메라 · 마이크)로 카메라 송출 → 비로그인 시청자 영상 · 오디오 수신 → 종료 표시.
+
+11-19 확인 결과: 실제 휴대폰으로 운영 주소에서 카메라 송출 → 다른 기기에서 시청 확인.
 
 ### 1.5 되돌리기
 

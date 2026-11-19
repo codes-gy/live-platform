@@ -1,4 +1,4 @@
-# 로컬 개발용 DB. 운영 배포용 compose는 별도(deploy/)로 둔다.
+# 로컬 개발용 DB. 자체 호스팅용 compose는 docker-compose.prod.yml, 운영 배포는 docs/DEPLOY.md 참고.
 services:
   postgres:
     image: postgres:18-alpine

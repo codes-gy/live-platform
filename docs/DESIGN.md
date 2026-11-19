@@ -3,7 +3,7 @@
 도메인 모델, 방송 상태, 권한, API, 주요 흐름과 결정 이유를 정리한다.
 시스템 구성과 코드 구조는 [`ARCHITECTURE.md`](ARCHITECTURE.md)를 본다.
 
-- 기준: 2026-11-12. **(예정)** 은 아직 구현하지 않은 부분
+- 기준: 2026-11-19, 브랜치 `main`. **(미구현)** 은 설계만 있고 구현하지 않은 선택 기능
 
 ## 1. 데이터 모델
 
@@ -54,6 +54,7 @@ stateDiagram-v2
     LIVE --> ENDED : 소유자 end
     LIVE --> ENDED : 웹훅 room_finished
     LIVE --> ENDED : 방송자 이탈 후 30초 내 복귀 없음
+    LIVE --> ENDED : 1분 주기 점검에서 방송자 없음
     READY --> [*] : 삭제
     ENDED --> [*] : 삭제
     note right of LIVE
@@ -69,8 +70,8 @@ stateDiagram-v2
 ```
 
 - 전이 규칙은 엔티티 `Broadcast`에만 있다: `start()`(READY→LIVE), `end()`(LIVE→ENDED), `checkLive()`, `checkDeletable()`. 어긋나면 409(`BROADCAST_ALREADY_LIVE` · `BROADCAST_NOT_LIVE` · `BROADCAST_ENDED` · `BROADCAST_LIVE_CANNOT_DELETE`).
-- 상태 변경은 `findForUpdateById`(비관적 잠금)로 직렬화한다. 소유자 종료와 웹훅 종료가 동시에 와도 한 번만 ENDED가 된다.
-- 종료는 모두 `BroadcastLiveService.endLocked()` 한 곳을 지나며 `BroadcastEndedEvent`를 발행한다. 종료 경로가 몇 개든 후처리(댓글 SSE `ended`, 녹화 정리 예정)는 한 곳에서 걸린다.
+- 상태 변경은 `findForUpdateById`(비관적 잠금)로 직렬화한다. 소유자 종료와 웹훅 종료가 동시에 와도 한 번만 ENDED가 된다. 정보 수정 · 삭제도 같은 행 잠금을 잡아 시작 · 종료와 겹쳐도 변경이 사라지지 않는다(#46).
+- 종료는 모두 `BroadcastLiveService.endLocked()` 한 곳을 지나며 `BroadcastEndedEvent`를 발행한다. 종료 경로가 몇 개든 후처리(댓글 SSE `ended`)는 한 곳에서 걸린다.
 - 종료 API는 멱등이다. 이미 ENDED면 200을 그대로 돌려준다.
 
 ## 3. 인증 · 인가
@@ -79,7 +80,7 @@ stateDiagram-v2
 
 - 로그인 성공 시 JWT를 **HttpOnly 쿠키 `access_token`** 으로 내린다(SameSite=Lax, 운영 Secure). `Authorization: Bearer`도 허용한다(Swagger · 테스트용).
 - 비밀번호는 BCrypt. 로그아웃은 쿠키를 `Max-Age=0`으로 지운다(무상태, 서버 세션 없음).
-- 심사용 테스트 계정은 별도 기능 없이 운영 서버에 일반 회원가입으로 만들어 두었다(`demo-streamer@example.com` · `demo-viewer@example.com`, README에 공개). 처음에는 비밀번호 없이 로그인하는 `test-login` API와 시작 시 계정 자동 생성이 있었으나, 인증을 우회하는 경로를 운영에 두지 않으려고 11-17에 없앴다.
+- 심사용 테스트 계정은 별도 기능 없이 운영 서버에 일반 회원가입으로 만들어 두었다(`demo-streamer@example.com` · `demo-viewer@example.com`, README에 공개). 처음에는 비밀번호 없이 로그인하는 테스트 로그인 API와 시작 시 계정 자동 생성이 있었으나, 인증을 우회하는 경로를 운영에 두지 않으려고 11-17에 없앴다.
 - 프론트: `proxy.ts`가 쿠키 유무만 보고 보호 경로를 `/login?next=`로 보낸다(빠른 1차 차단). 실제 판단은 서버가 한다. `safeNext`로 오픈 리다이렉트를 막는다.
 
 ### 3.2 인가 규칙 (서버에서 검증)
@@ -103,7 +104,7 @@ stateDiagram-v2
 
 ### 3.3 오류 형식
 
-모든 오류는 `{ "code": "BROADCAST_NOT_FOUND", "message": "…" }`. `ErrorCode` enum이 HTTP 상태와 메시지를 가진다. 프론트는 `ApiError{status, code, message}`로 받아 코드별로 안내한다.
+모든 오류는 `{ "code": "BROADCAST_NOT_FOUND", "message": "…" }`. `ErrorCode` enum이 HTTP 상태와 메시지를 가진다. 프론트는 `ApiError{status, code, message}`로 받아 코드별로 안내한다. 지원하지 않는 메서드 · Content-Type은 500이 아니라 405 · 415(`UNSUPPORTED_REQUEST`)로 응답한다(#46).
 
 ## 4. API
 
@@ -224,7 +225,7 @@ sequenceDiagram
     A->>D: LIVE면 ENDED
 ```
 
-- 유예 예약은 메모리 스케줄러라 서버가 재시작되면 사라진다. 이 경우 LiveKit의 `emptyTimeout`(2분) · `departureTimeout`(1분)으로 방이 닫히며 오는 `room_finished`가 최종 안전망이다.
+- 유예 예약은 메모리 스케줄러라 서버가 재시작되면 사라진다. 이 경우 LiveKit의 `emptyTimeout`(2분) · `departureTimeout`(1분)으로 방이 닫히며 오는 `room_finished`와, 1분마다 LIVE 방송을 LiveKit 참가자와 대조하는 `LiveReconcileScheduler`(#34)가 안전망이다. 웹훅이 유실돼도 방송자가 없으면 유예 뒤 ENDED가 된다.
 - 웹훅은 중복 · 순서 뒤바뀜에도 안전하다(상태 전이가 LIVE일 때만 일어남).
 
 ### 5.5 댓글 실시간 전송
@@ -233,7 +234,7 @@ sequenceDiagram
 - 이벤트는 `@TransactionalEventListener(AFTER_COMMIT)`로 커밋된 것만 SSE로 보낸다. 구독 목록은 메모리(`CommentStreams`), 30분 타임아웃, 20초 `:ping`, `retry: 3000`, `X-Accel-Buffering: no`.
 - 종료 시 `ended` 이벤트를 보내고 스트림을 닫는다. 이미 종료된 방송을 구독하면 즉시 `ended`.
 - 프론트(`components/comment/`, `lib/comments.ts`): 상태는 **id를 키로 한 리듀서**(`first-page` · `older-page` · `upsert` · `edited` · `remove`). 내 POST 응답과 SSE로 돌아온 같은 댓글이 id로 합쳐져 한 번만 보인다. 표시는 id 오름차순(채팅 순서), 위쪽 "이전 댓글 더 보기"는 `before` 커서.
-- SSE는 LIVE일 때만 연결. 끊겼다 다시 붙으면 첫 페이지를 다시 받아 그 범위는 서버 스냅샷으로 교체(놓친 삭제 반영), 그보다 새 항목은 유지. `ended` 이벤트 → 연결 닫고 상세를 다시 불러 종료 화면으로.
+- SSE는 LIVE일 때만 연결. 서버 오류로 끊겨도 자동으로 다시 연결한다(#46). 다시 붙으면 첫 페이지를 다시 받아 그 범위는 서버 스냅샷으로 교체(놓친 삭제 반영), 그보다 새 항목은 유지. `ended` 이벤트 → 연결 닫고 상세를 다시 불러 종료 화면으로.
 - Next.js 기본 gzip 압축이 `text/event-stream`을 모아 두어 실시간 수신이 멈추므로 `next.config.ts`에 `compress: false`(압축은 앞단 프록시 · 호스팅이 맡음). E2E에서 rewrite 경유 수신 지연 약 250ms 확인.
 
 ## 6. 송출 스튜디오 클라이언트 설계
@@ -255,13 +256,14 @@ stateDiagram-v2
 - 캡처(`media.ts`): `Capture{screen, screenAudio, mic, micMuted}`. 화면 선택 취소는 null, 마이크 실패도 null(화면만으로 송출 가능).
 - 브라우저의 "공유 중지"를 누르면 방 연결은 유지하고 화면만 다시 고르게 한다.
 - 화면을 떠나거나 `<Activity>`로 숨겨지면 연결 · 캡처를 모두 정리한다(숨은 탭에서 화면을 계속 캡처하지 않기 위해). 종료 API는 부르지 않으므로 30초 안에 돌아오면 재개, 아니면 서버 유예로 자동 종료.
-- 늦게 도착한 비동기 결과는 epoch 카운터로 버린다.
+- 늦게 도착한 비동기 결과는 epoch 카운터로 버린다. 마이크 버튼을 연달아 눌러도 요청은 한 번만 처리한다(#46).
+- 방송 중 앱 안 링크로 스튜디오를 떠나려 하면 확인 창을 띄운다(#46).
 
 ### 6.1 모바일 송출 (#8)
 
 - 송출 방식 `StudioMode = "screen" | "camera"`, 캡처는 `Capture{ video?: VideoCapture, mic?, micMuted }`이고 `VideoCapture`는 `{kind:"screen", track, audio?}` 또는 `{kind:"camera", track, facing}`이다.
 - 휴대폰(`getDisplayMedia` 없음)은 카메라만. PC는 기본 화면 공유이고 setup 단계에서 "화면 공유 | 카메라"로 웹캠을 고를 수 있다. 둘 다 없으면(HTTPS 아님 등) HTTPS · 지원 브라우저 안내.
-- 카메라는 `createLocalVideoTrack({facingMode, 720p})`, 마이크는 카메라를 켤 때 함께 요청한다. 미리보기는 전면 카메라일 때만 CSS로 거울 반전(송출 트랙은 그대로).
+- 카메라는 `createLocalVideoTrack({facingMode, 1280×1280 · 30fps})`, 마이크는 카메라를 켤 때 함께 요청한다. 가로세로를 같게 요청해 세로로 든 휴대폰 영상이 16:9로 잘리지 않는다(PR #44). 미리보기는 전면 카메라일 때만 CSS로 거울 반전(송출 트랙은 그대로).
 - 전면/후면 전환은 `restartTrack({facingMode})` — 같은 퍼블리케이션을 유지해 방송 중에도 시청자 연결이 끊기지 않는다. 버튼은 휴대폰에서만 보인다.
 - 방송 중 카메라가 끊기면(앱 전환 등) LiveKit SDK가 같은 트랙으로 다시 잡고, 실패하면 음소거한다(`LocalParticipant.handleTrackEnded`). 우리 코드는 방송 전(setup)에만 미리보기를 비운다.
 - 연결 · 방송 · 종료 중에는 Screen Wake Lock으로 화면 꺼짐을 막고, 탭이 다시 보이면 다시 요청한다(`useWakeLock`).
@@ -274,7 +276,14 @@ stateDiagram-v2
 - **마이크 음량 막대**: 마이크 트랙을 WebAudio `AnalyserNode`에 연결해 매 프레임 최댓값을 막대 길이로 그린다. 리렌더를 피하려고 state 대신 요소의 transform을 직접 바꾼다.
 - **글꼴 · 줄바꿈**: Pretendard(OFL-1.1) 가변 글꼴을 jsDelivr의 동적 서브셋 CSS로 불러온다(쓴 글자 구간만 받음). 본문은 `word-break: keep-all`로 어절 단위로 줄을 바꾼다.
 
-## 7. 선택 기능 설계 (예정)
+### 6.3 송출 화질 (PR #44)
+
+- LiveKit 기본값(화면 공유 15fps, 카메라 낮은 층 20fps)은 끊겨 보여 `PUBLISH_OPTIONS`(`media.ts`)로 올렸다.
+- 화면 공유: 최대 1920×1080 · 60fps, 6Mbps, 보조 층 720p 30fps.
+- 카메라: 휴대폰에서 60fps가 불안정해 30fps, 최상위 층 2.5Mbps, 보조 층(180p · 360p)도 30fps.
+- 시청: `adaptiveStream: { pixelDensity: "screen" }`로 화면 해상도에 맞는 층을 받는다(`LivePlayer`).
+
+## 7. 선택 기능 설계 (미구현)
 
 ### 7.1 도네이션 (#12, 토스페이먼츠 테스트 모드)
 
@@ -324,6 +333,9 @@ sequenceDiagram
 
 - 유예 예약 · 댓글 SSE 구독은 서버 메모리에 있어 **서버 1대**를 전제로 한다. 여러 대로 늘리면 pub/sub(예: Redis)이 필요하다.
 - `start` 요청 중 화면을 떠나면 서버는 LIVE인데 방송자가 없을 수 있다 → `emptyTimeout`(2분) 뒤 `room_finished`로 ENDED.
-- 댓글 레이트 리밋 없음.
+- 로그인 · 댓글 작성 · 댓글 SSE 구독에 요청 횟수 제한(rate limit)이 없다.
+- 로그아웃은 쿠키만 지운다. 무상태 JWT라 이미 복사된 토큰은 만료(12시간)까지 유효하다.
 - 시스템 소리는 브라우저 · OS 제약(Windows Chrome/Edge만)을 따른다.
+- 세로 카메라 영상은 16:9 플레이어 안에 좌우 여백을 두고 표시된다.
+- 선택 기능 중 도네이션 · 녹화는 구현하지 않았다(7절은 설계만).
 - 시청자 수는 LiveKit 방 정보 갱신 주기와 3초 폴링 때문에 몇 초 늦게 바뀐다. 목록 카드에는 없다(서버가 방마다 참가자 수를 물어야 함).
