@@ -209,6 +209,14 @@
   - **배포 함정 발견**: Platform API로 `PATCH /formation {docker_image}`만 보내면 200이지만 release가 안 생긴다 → `Accept: application/vnd.heroku+json; version=3.docker-releases` 필요. 그래서 11-17 오전 "배포"는 실제로 반영되지 않았고 운영은 11-12 이미지(+ Neon 설정)였음. 수정 후 api v12 · web v8 release, `test-login` 401 · 로그인 화면 버튼 없음 · 시연 계정 로그인 · **운영 E2E 4/4 통과**
   - 남은 정리(사용자 확인 필요): 예전 자동 생성 계정 `streamer@test.com` · `viewer@test.com`(공개 비밀번호 test1234!)이 Neon DB에 남아 있음, E2E가 만든 `e2e-…@example.com` 계정도 누적
 
+- [x] (11-19) **송출 화질 · 프레임 개선(이슈 #43, PR #44)** develop 머지 · 운영 web v9 배포
+  - 계기: 사용자가 시연 영상 품질 · 휴대폰 화면이 다 안 보임을 지적. 원인은 `publishTrack` 옵션 미지정으로 LiveKit 기본값 사용(화면 공유 `h1080fps15`, 카메라 낮은 층 20fps), 시청 `adaptiveStream` 기본이 레티나를 1배로 계산(화면 공유 960x540 수신), 카메라 16:9 요청으로 세로 카메라 크롭(720x960 → 720x720), 휴대폰 스튜디오 3:4 미리보기로 "방송 시작" 버튼이 화면 밖(695px > 664px)
+  - 수정: `media.ts` `PUBLISH_OPTIONS`(카메라 2.5Mbps · 전 층 30fps, 화면 공유 1080p 60fps 6Mbps + 720p30 층) · `CAMERA_RESOLUTION`(1280x1280 이상적 값, 전면/후면 전환에도 적용), `LivePlayer` `pixelDensity: "screen"`, 스튜디오 미리보기 `max-h-[55svh]`
+  - 카메라 60fps는 측정에서 최고 층 17~43fps로 불안정 → 30fps 유지. 화면 공유 60fps는 안정(송출 · 수신 1080p 56~60fps)
+  - 운영 측정(가짜 소스, scratchpad `rec/measure.mjs` · `phone.mjs` · `fps.mjs`): 화면 공유 수신 1080p 59~60fps(전 960x540 15fps), 카메라 720p 30fps 2.5Mbps, 세로 카메라 720x960 그대로, iPhone 13 "방송 시작" 583px(화면 안)
+  - 시연 녹화 도구: scratchpad `rec/record.mjs`(LIVE 방송 대기 → 비로그인 시청 화면 + 수신 오디오 녹화 → mp4). 사용자는 다른 영상으로 촬영하기로 함
+  - 배포: 이 Mac(heroku CLI 로그인 · Docker)에서 `scripts/deploy-heroku.sh web` 동작 확인
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
@@ -226,7 +234,7 @@
 - (11-15) 사용자 질문 "외부 서비스 의존을 줄일 수 없나" → 선택지 비교만 함(코드 변경 없음): ① LiveKit 오픈소스 서버 자체 호스팅(VPS · UDP 포트 필요, 코드 변경 거의 없음, Heroku는 UDP 불가) ② 직접 구현 HLS(MediaRecorder → WebSocket → ffmpeg 리먹싱, Heroku 가능, 지연 3~10초, #3 · #5 · #7 · #8 재작성) ③ P2P WebRTC(STUN/TURN 필요, 시청자 늘면 방송자 업로드 폭증). 추천: 마감 전엔 LiveKit Cloud 유지, 자립이 필요하면 ①. **사용자 결정 대기**
 
 ## 다음 작업 (순서대로)
-0. (11-17) ~~README + 운영 문서 PR~~ **PR #37 develop 머지 완료(이슈 #14 닫힘)** → **LiveKit 웹훅 URL 등록**(사용자, `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`) → 실제 휴대폰 송출 확인 → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
+0. (11-17) ~~README + 운영 문서 PR~~ **PR #37 develop 머지 완료(이슈 #14 닫힘)** → ~~LiveKit 웹훅 URL 등록~~ **11-19 사용자 등록 완료**(`…/api/livekit/webhook`, 서명 없는 요청 401 · api health UP 확인. 실제 수신은 휴대폰 송출 때 탭 닫기 → 즉시 종료로 확인) → ~~실제 휴대폰 송출 확인~~ **11-19 사용자 확인 완료**(운영 주소, "잘 된다". 탭 닫기 → 웹훅 즉시 종료 여부는 따로 보고받지 않음) → (11-19 화질 개선 배포 완료, 실제 휴대폰 · PC로 화질 재확인 필요) → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)
