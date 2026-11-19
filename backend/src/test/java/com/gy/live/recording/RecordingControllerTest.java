@@ -124,7 +124,9 @@ class RecordingControllerTest {
 		mockMvc.perform(get("/api/recordings").param("size", "50"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.items[?(@.id == %d)].status".formatted(recording.getId())).value("READY"))
-				.andExpect(jsonPath("$.items[?(@.id == %d)].playbackUrl".formatted(recording.getId())).isEmpty());
+				// 목록에는 재생 주소를 넣지 않는다(상세에서만 서명)
+				.andExpect(jsonPath("$.items[?(@.id == %d)].playbackUrl".formatted(recording.getId()))
+						.value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())));
 		mockMvc.perform(get("/api/broadcasts/{id}/recordings", id))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].id").value(recording.getId()));
