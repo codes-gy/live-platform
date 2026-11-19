@@ -140,7 +140,7 @@ function Session({ broadcast, canScreen, canCamera }: { broadcast: Broadcast; ca
 
         {phase.kind === "setup" && canScreen && canCamera && <ModeToggle mode={mode} onSelect={selectMode} />}
 
-        <div className={`relative w-full overflow-hidden rounded-xl bg-black ${camera ? "aspect-[3/4] sm:aspect-video" : "aspect-video"}`}>
+        <div className={`relative w-full overflow-hidden rounded-xl bg-black ${camera ? "aspect-[3/4] max-h-[55svh] sm:aspect-video sm:max-h-none" : "aspect-video"}`}>
           {video ? (
             <Preview track={video.track} mirror={video.kind === "camera" && video.facing === "user"} />
           ) : (

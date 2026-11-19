@@ -4,7 +4,7 @@ import { DisconnectReason, Room, RoomEvent, TrackEvent, type LocalAudioTrack, ty
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Broadcast, LiveAccess } from "@/lib/broadcast";
-import { captureCamera, captureMic, captureScreen, NO_CAPTURE, stopCapture, stopVideo, videoTracks, type Capture, type StudioMode, type VideoCapture } from "./media";
+import { CAMERA_RESOLUTION, captureCamera, captureMic, captureScreen, NO_CAPTURE, PUBLISH_OPTIONS, stopCapture, stopVideo, videoTracks, type Capture, type StudioMode, type VideoCapture } from "./media";
 
 /**
  * setup  : 화면(또는 카메라) · 마이크를 고르는 단계. 방송이 READY면 "시작", LIVE면(새로고침 · 연결 끊김 뒤) "재개".
@@ -155,7 +155,7 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
     flippingRef.current = true;
     const facing = video.facing === "user" ? "environment" : "user";
     try {
-      await video.track.restartTrack({ facingMode: facing });
+      await video.track.restartTrack({ facingMode: facing, resolution: CAMERA_RESOLUTION });
       const c = captureRef.current;
       if (c.video?.track === video.track) setCapture({ ...c, video: { ...video, facing } });
     } catch {
@@ -243,7 +243,7 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
       await room.connect(access.serverUrl, access.token);
       const { video, mic } = captureRef.current;
       for (const track of [...(video ? videoTracks(video) : []), ...(mic ? [mic] : [])]) {
-        await room.localParticipant.publishTrack(track);
+        await room.localParticipant.publishTrack(track, PUBLISH_OPTIONS);
       }
     } catch (e) {
       if (epoch !== epochRef.current) return;
