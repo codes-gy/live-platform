@@ -14,6 +14,7 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -32,6 +33,7 @@ public class R2RecordingStorage implements RecordingStorage {
 	private final AppProperties.Recording recording;
 	private final Clock clock;
 
+	@Autowired
 	public R2RecordingStorage(AppProperties properties) {
 		this(properties.recording(), Clock.systemUTC());
 	}
