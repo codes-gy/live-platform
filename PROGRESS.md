@@ -226,6 +226,11 @@
   - 이슈 #9 닫음(EC2 대신 Heroku + Neon). #12 · #13(선택)은 열어 둠
   - 남은 정리: 하위 에이전트 워크트리 `<repo>/.claude/worktrees/agent-adef0222a30cca405`(브랜치 머지됨, 지워도 됨)
 
+- [x] (11-19) **방송 목록 썸네일(이슈 #50, PR #51)** develop 머지 · 운영 배포(Flyway V4 Neon 적용)
+  - 사용자 요청 "썸네일 추가해줘". 방송자 브라우저(`useThumbnailUpload`)가 송출 트랙을 480x270 JPEG로 30초마다 업로드(실패 시 3초 뒤 재시도), `broadcast_thumbnails`(방송 삭제 시 CASCADE)에 마지막 1장, 카드가 `?v=` 붙여 표시 · 없으면 아바타
+  - API: `PUT /api/broadcasts/{id}/thumbnail`(소유자 · LIVE · JPEG 300KB 이하 · FF D8 FF 검사), `GET` 공개(max-age 30). 대안 LiveKit Egress(유료) · 파일 저장(Heroku 디스크 휘발) 제외
+  - 테스트 109개(썸네일 6개). 로컬 전체 스택(임시 Postgres 5433 — 5432는 다른 프로젝트 kidly-postgres가 사용 중) + 운영에서 확인: 시작 8초 안에 200 image/jpeg 약 10KB, 30초 뒤 갱신, 카드 480px 표시, 방송 삭제 시 404
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
