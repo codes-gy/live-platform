@@ -48,21 +48,33 @@ public class BroadcastService {
 
 	@Transactional
 	public BroadcastResponse update(Long userId, Long broadcastId, BroadcastInfoRequest request) {
-		Broadcast broadcast = findOwned(userId, broadcastId);
+		Broadcast broadcast = lockOwned(userId, broadcastId);
 		broadcast.updateInfo(request.normalizedTitle(), request.normalizedDescription());
 		return BroadcastResponse.from(broadcast);
 	}
 
 	@Transactional
 	public void delete(Long userId, Long broadcastId) {
-		Broadcast broadcast = findOwned(userId, broadcastId);
+		Broadcast broadcast = lockOwned(userId, broadcastId);
 		broadcast.checkDeletable();
 		broadcastRepository.delete(broadcast);
 	}
 
 	/** 수정 · 삭제 · 송출 제어의 공통 관문: 방송이 있고, 요청한 사람이 소유자여야 한다. */
 	Broadcast findOwned(Long userId, Long broadcastId) {
-		Broadcast broadcast = find(broadcastId);
+		return requireOwner(find(broadcastId), userId);
+	}
+
+	/**
+	 * findOwned에 행 잠금을 더한 것. 상태를 바꾸거나(시작 · 종료) 엔티티 전체를 다시 쓰는(수정 · 삭제) 요청끼리
+	 * 직렬화해, 수정이 동시에 끝난 종료를 LIVE로 되돌려 쓰는 일을 막는다.
+	 */
+	Broadcast lockOwned(Long userId, Long broadcastId) {
+		return requireOwner(broadcastRepository.findForUpdateById(broadcastId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.BROADCAST_NOT_FOUND)), userId);
+	}
+
+	private static Broadcast requireOwner(Broadcast broadcast, Long userId) {
 		if (!broadcast.isOwnedBy(userId)) {
 			throw new BusinessException(ErrorCode.NOT_BROADCAST_OWNER);
 		}

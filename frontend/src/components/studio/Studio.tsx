@@ -94,13 +94,24 @@ function Session({ broadcast, canScreen, canCamera }: { broadcast: Broadcast; ca
     canScreen ? "screen" : "camera",
   );
 
-  // 방송 중 탭을 닫거나 새로고침하면 송출이 끊긴다
+  // 방송 중 탭을 닫거나 새로고침하거나 앱 안의 다른 화면으로 가면 송출이 끊긴다
   const guarded = phase.kind === "connecting" || phase.kind === "live" || phase.kind === "ending";
   useEffect(() => {
     if (!guarded) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    // 캡처 단계에서 막아야 Next Link의 클릭 처리보다 먼저 실행된다
+    const confirmLeave = (e: MouseEvent) => {
+      if (!(e.target instanceof Element) || !e.target.closest('a[href]:not([target="_blank"])')) return;
+      if (window.confirm("방송 중입니다. 이 화면을 나가면 송출이 끊깁니다. 나갈까요?")) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", confirmLeave, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", confirmLeave, true);
+    };
   }, [guarded]);
   useWakeLock(guarded);
 

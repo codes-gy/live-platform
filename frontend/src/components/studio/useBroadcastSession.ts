@@ -4,7 +4,7 @@ import { DisconnectReason, Room, RoomEvent, TrackEvent, type LocalAudioTrack, ty
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import type { Broadcast, LiveAccess } from "@/lib/broadcast";
-import { CAMERA_RESOLUTION, captureCamera, captureMic, captureScreen, NO_CAPTURE, PUBLISH_OPTIONS, stopCapture, stopVideo, videoTracks, type Capture, type StudioMode, type VideoCapture } from "./media";
+import { CAMERA_RESOLUTION, captureCamera, captureMic, captureScreen, NO_CAPTURE, PUBLISH_DEFAULTS, stopCapture, stopVideo, videoTracks, type Capture, type StudioMode, type VideoCapture } from "./media";
 
 /**
  * setup  : 화면(또는 카메라) · 마이크를 고르는 단계. 방송이 READY면 "시작", LIVE면(새로고침 · 연결 끊김 뒤) "재개".
@@ -42,6 +42,7 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
   const micAskedRef = useRef(false);
   const pickingRef = useRef(false);
   const flippingRef = useRef(false);
+  const togglingMicRef = useRef(false);
   const modeRef = useRef(initialMode);
 
   const setCapture = (next: Capture) => {
@@ -175,17 +176,20 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
       setCapture({ ...captureRef.current, mic: undefined, micMuted: false });
       return;
     }
-    const next = await captureMic();
-    if (!next) {
-      setMessage("마이크를 사용할 수 없습니다. 브라우저의 마이크 권한을 확인해 주세요.");
-      return;
-    }
-    setMessage(null);
-    setCapture({ ...captureRef.current, mic: next, micMuted: false });
+    // 권한 창이 떠 있는 동안 다시 누르면 마이크를 두 번 잡아 하나가 꺼지지 않는다
+    if (togglingMicRef.current) return;
+    togglingMicRef.current = true;
     try {
-      await publish(next);
-    } catch {
-      setMessage("마이크를 송출하지 못했습니다.");
+      const next = await captureMic();
+      if (!next) {
+        setMessage("마이크를 사용할 수 없습니다. 브라우저의 마이크 권한을 확인해 주세요.");
+        return;
+      }
+      setMessage(null);
+      setCapture({ ...captureRef.current, mic: next, micMuted: false });
+      await publish(next)?.catch(() => setMessage("마이크를 송출하지 못했습니다."));
+    } finally {
+      togglingMicRef.current = false;
     }
   };
 
@@ -225,7 +229,8 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
       return;
     }
 
-    const room = new Room({ dynacast: true });
+    // 방송 중 화면 바꾸기 · 공유 재시작으로 다시 올리는 트랙도 같은 화질 설정을 쓰도록 방 기본값으로 둔다
+    const room = new Room({ dynacast: true, publishDefaults: PUBLISH_DEFAULTS });
     roomRef.current = room;
     room.on(RoomEvent.Disconnected, (reason) => {
       // release()가 먼저 roomRef를 비우므로, 여기 오는 건 우리가 끊지 않은 연결 종료뿐이다
@@ -243,7 +248,7 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
       await room.connect(access.serverUrl, access.token);
       const { video, mic } = captureRef.current;
       for (const track of [...(video ? videoTracks(video) : []), ...(mic ? [mic] : [])]) {
-        await room.localParticipant.publishTrack(track, PUBLISH_OPTIONS);
+        await room.localParticipant.publishTrack(track);
       }
     } catch (e) {
       if (epoch !== epochRef.current) return;

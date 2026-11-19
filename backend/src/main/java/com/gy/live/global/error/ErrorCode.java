@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
 	INVALID_INPUT(HttpStatus.BAD_REQUEST, "입력값을 확인해 주세요."),
+	/** 상태 코드는 스프링이 정한 값(405 · 415 등)을 쓰고, 여기 status는 쓰이지 않는다 */
+	UNSUPPORTED_REQUEST(HttpStatus.BAD_REQUEST, "지원하지 않는 요청 방식입니다."),
 	UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다."),
 	NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 대상을 찾을 수 없습니다."),

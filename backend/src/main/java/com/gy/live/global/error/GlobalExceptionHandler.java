@@ -48,6 +48,11 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	ResponseEntity<ErrorResponse> handleUnexpected(Exception e) {
+		// 405 · 415 같은 스프링 MVC 예외는 상태 코드를 들고 있다. 서버 오류(500)로 뭉개지 않는다
+		if (e instanceof org.springframework.web.ErrorResponse framework && framework.getStatusCode().is4xxClientError()) {
+			return ResponseEntity.status(framework.getStatusCode()).contentType(MediaType.APPLICATION_JSON)
+					.body(ErrorResponse.of(ErrorCode.UNSUPPORTED_REQUEST));
+		}
 		log.error("처리하지 못한 예외", e);
 		return respond(ErrorCode.INTERNAL_ERROR, ErrorCode.INTERNAL_ERROR.message());
 	}

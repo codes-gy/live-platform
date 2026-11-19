@@ -38,7 +38,7 @@ async function fetchFirst(tab: Tab): Promise<State> {
 }
 
 export function BroadcastList() {
-  const [tab, setTab] = useState<Tab>(TABS[0]);
+  const [tab, setTab] = useState<Tab>(TABS[1]) // 방송 중인 게 없을 때 첫 화면이 비지 않게 "전체";
   const [state, setState] = useState<State>({ kind: "loading" });
   const [loadingMore, setLoadingMore] = useState(false);
   // 시각은 데이터를 받을 때 정한다(미리 렌더링할 때 Date.now()를 쓰지 않는다)
