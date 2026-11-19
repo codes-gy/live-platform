@@ -254,6 +254,14 @@
   - **미확인**: 결제창에서 실제 테스트 결제 → 승인 → 적립까지(샌드박스 화면 자동 조작 실패). 사용자 수동 확인 필요. 이슈 #12는 main 반영 전이라 열린 상태
   - **main은 제출본(105e219) 그대로 둠**(마감 후 변경 여부 사용자 결정)
 
+- [x] (11-20 새벽) **#13 녹화 · 다시보기 구현 · 운영 배포**(제출 마감 후): PR #65 develop 머지(CI 백엔드 131개 통과)
+  - 사용자가 Cloudflare R2 버킷 `jiing-recordings`(비공개) · API 토큰을 만들어 A: `.env`에 `R2_ACCOUNT_ID` · `R2_ACCESS_KEY_ID` · `R2_SECRET_ACCESS_KEY` · `R2_BUCKET` 추가 → aws-cli 컨테이너로 업로드 · 목록 · 서명 GET · 삭제 확인
+  - 백엔드: `BroadcastStartedEvent`(start 트랜잭션) → `RecordingService`가 커밋 뒤 `liveTaskScheduler`에서 `SdkLiveKitRecorder.startRoomRecording`(Room Composite Egress, speaker 레이아웃, H264_720P_30, MP4, S3Upload=R2 endpoint · forcePathStyle) → `recordings`(V8) RECORDING. 시작 실패 시 FAILED 행만 남기고 방송은 계속. 녹화 종료는 방 삭제로 자동 → 웹훅 `egress_ended`에서 egress_id 행 잠금 후 READY(길이 ns→ms · 크기) / FAILED. 재생은 `R2RecordingStorage`(AWS SigV4 쿼리 서명, 표준 라이브러리, 2시간) — 실제 R2로 200 확인. 공개 API `GET /api/recordings` · `/api/recordings/{id}` · `/api/broadcasts/{id}/recordings`
+  - 함정: 생성자 2개(@Autowired 없으면 스프링이 기본 생성자를 찾다 컨텍스트 실패), jsonPath 필터 결과는 `[null]`이라 isEmpty 실패
+  - 프론트: `/recordings` 목록(썸네일 · 재생 시간) · `/recordings/[id]` `<video>` 재생, 종료 방송 상세 "다시보기" 버튼, 헤더 "다시보기" 메뉴
+  - Heroku api에 R2_* 설정, api v20 · web v17 배포. **운영 E2E**: 가짜 카메라 40초 송출 → 녹화 중 RECORDING → 종료 후 egress_ended 수신 → READY 38초 · 14.1MB → R2 서명 주소 206 video/mp4 → 설치된 Chrome으로 1280x720 재생 · 목록 카드 · 상세 다시보기 버튼 확인(자동화 Chromium은 H.264 코덱이 없어 재생 불가 — 확인은 `channel: chrome`). LiveKit 웹훅이 운영에서 실제로 도착함도 확인
+  - 남은 것: 이슈 #12 · #13은 main 반영 전이라 열림. LiveKit 무료 녹화 한도 월 60분(이번 시험 약 1분 사용)
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
