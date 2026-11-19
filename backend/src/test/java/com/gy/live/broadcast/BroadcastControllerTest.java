@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -256,6 +257,29 @@ class BroadcastControllerTest {
 		void 없는_방송은_404() throws Exception {
 			mockMvc.perform(delete("/api/broadcasts/{id}", Long.MAX_VALUE).cookie(owner))
 					.andExpect(status().isNotFound());
+		}
+	}
+
+	@Nested
+	@DisplayName("지원하지 않는 요청 방식")
+	class UnsupportedRequest {
+
+		@Test
+		@DisplayName("JSON이 아닌 본문은 500이 아니라 415")
+		void wrongContentType() throws Exception {
+			mockMvc.perform(post("/api/broadcasts").cookie(owner).contentType(MediaType.TEXT_PLAIN).content("제목"))
+					.andExpect(status().isUnsupportedMediaType())
+					.andExpect(jsonPath("$.code").value("UNSUPPORTED_REQUEST"));
+		}
+
+		@Test
+		@DisplayName("없는 HTTP 메서드는 500이 아니라 405")
+		void wrongMethod() throws Exception {
+			long id = createBroadcast(owner, "제목");
+			mockMvc.perform(put("/api/broadcasts/" + id).cookie(owner).contentType(MediaType.APPLICATION_JSON)
+							.content(BODY.formatted("제목", "설명")))
+					.andExpect(status().isMethodNotAllowed())
+					.andExpect(jsonPath("$.code").value("UNSUPPORTED_REQUEST"));
 		}
 	}
 }

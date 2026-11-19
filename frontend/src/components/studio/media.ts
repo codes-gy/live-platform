@@ -5,7 +5,7 @@ import {
   LocalAudioTrack,
   LocalVideoTrack,
   VideoPreset,
-  type TrackPublishOptions,
+  type TrackPublishDefaults,
   type VideoResolution,
 } from "livekit-client";
 
@@ -32,7 +32,7 @@ export const CAMERA_RESOLUTION: VideoResolution = { width: 1280, height: 1280, f
  * LiveKit 기본값은 화면 공유 15fps, 카메라 낮은 층 20fps라 끊겨 보인다.
  * 카메라는 휴대폰에서 60fps가 불안정해 30fps로 두고, 화면 공유만 60fps까지 올린다.
  */
-export const PUBLISH_OPTIONS: TrackPublishOptions = {
+export const PUBLISH_DEFAULTS: TrackPublishDefaults = {
   videoEncoding: { maxBitrate: 2_500_000, maxFramerate: 30 },
   videoSimulcastLayers: [new VideoPreset(320, 180, 200_000, 30), new VideoPreset(640, 360, 600_000, 30)],
   screenShareEncoding: { maxBitrate: 6_000_000, maxFramerate: 60 },

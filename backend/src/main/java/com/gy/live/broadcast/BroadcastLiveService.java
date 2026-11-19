@@ -72,7 +72,7 @@ public class BroadcastLiveService {
 
 		// 3) 잠금 안에서 다시 확인하며 LIVE로 바꾼다(동시에 두 번 눌러도 한 번만 시작)
 		BroadcastResponse started = tx.execute(status -> {
-			Broadcast broadcast = lockOwned(user.id(), broadcastId);
+			Broadcast broadcast = broadcastService.lockOwned(user.id(), broadcastId);
 			broadcast.start();
 			return BroadcastResponse.from(broadcast);
 		});
@@ -107,7 +107,7 @@ public class BroadcastLiveService {
 	/** 소유자만. LIVE → ENDED로 바꾸고 방을 닫아 송출을 끊는다. 이미 종료됐으면 그대로 돌려준다(두 번 눌러도 안전). */
 	public BroadcastResponse end(LoginUser user, Long broadcastId) {
 		BroadcastResponse ended = tx.execute(status -> {
-			Broadcast broadcast = lockOwned(user.id(), broadcastId);
+			Broadcast broadcast = broadcastService.lockOwned(user.id(), broadcastId);
 			if (broadcast.getStatus() != BroadcastStatus.ENDED) {
 				endLocked(broadcast);
 			}
@@ -204,15 +204,6 @@ public class BroadcastLiveService {
 	private void endLocked(Broadcast broadcast) {
 		broadcast.end();
 		events.publishEvent(new BroadcastEndedEvent(broadcast.getId()));
-	}
-
-	private Broadcast lockOwned(Long userId, Long broadcastId) {
-		Broadcast broadcast = broadcastRepository.findForUpdateById(broadcastId)
-				.orElseThrow(() -> new BusinessException(ErrorCode.BROADCAST_NOT_FOUND));
-		if (!broadcast.isOwnedBy(userId)) {
-			throw new BusinessException(ErrorCode.NOT_BROADCAST_OWNER);
-		}
-		return broadcast;
 	}
 
 	private LiveAccessResponse publisherAccess(LoginUser user, String roomName, BroadcastResponse broadcast) {

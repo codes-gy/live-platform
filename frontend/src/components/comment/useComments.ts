@@ -29,6 +29,7 @@ export function useComments({ broadcastId, live, onEnded, onIncoming }: Options)
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [reconnects, setReconnects] = useState(0);
 
   const loadFirst = useCallback(() => {
     return fetchComments(broadcastId).then(
@@ -65,9 +66,12 @@ export function useComments({ broadcastId, live, onEnded, onIncoming }: Options)
   useEffect(() => {
     if (!live) return;
     const source = new EventSource(`/api/broadcasts/${broadcastId}/comments/stream`);
-    let dropped = false;
+    let dropped = reconnects > 0;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     source.addEventListener("error", () => {
       dropped = true;
+      // 네트워크 끊김은 브라우저가 다시 붙지만, 서버가 오류 응답(재시작 중 503 등)을 주면 연결을 영영 닫는다
+      if (source.readyState === EventSource.CLOSED) retry = setTimeout(() => setReconnects((n) => n + 1), 3000);
     });
     source.addEventListener("open", () => {
       // 끊겼다 다시 붙으면 그 사이 놓친 이벤트를 첫 페이지로 메운다.
@@ -94,8 +98,11 @@ export function useComments({ broadcastId, live, onEnded, onIncoming }: Options)
       source.close();
       handlers.current.onEnded();
     });
-    return () => source.close();
-  }, [broadcastId, live, loadFirst, handlers]);
+    return () => {
+      clearTimeout(retry);
+      source.close();
+    };
+  }, [broadcastId, live, loadFirst, handlers, reconnects]);
 
   return { state, dispatch, loaded, error, loadingOlder, loadOlder, retry: loadFirst };
 }
