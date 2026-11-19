@@ -168,19 +168,25 @@ export function useBroadcastSession(initial: Broadcast, initialMode: StudioMode)
 
   /** 마이크 켜기/끄기. 끄면 장치까지 놓는다. 방송 중 음소거는 toggleMicMute. */
   const toggleMic = async () => {
-    micAskedRef.current = true;
-    const { mic } = captureRef.current;
-    if (mic) {
-      void roomRef.current?.localParticipant.unpublishTrack(mic, true);
-      mic.stop();
-      setCapture({ ...captureRef.current, mic: undefined, micMuted: false });
-      return;
-    }
-    // 권한 창이 떠 있는 동안 다시 누르면 마이크를 두 번 잡아 하나가 꺼지지 않는다
+    // 권한 창이 떠 있거나 송출 중일 때 다시 누르면 마이크를 두 번 잡거나, 올리는 중인 트랙을 끊는다
     if (togglingMicRef.current) return;
     togglingMicRef.current = true;
+    micAskedRef.current = true;
+    const epoch = epochRef.current;
     try {
+      const { mic } = captureRef.current;
+      if (mic) {
+        void roomRef.current?.localParticipant.unpublishTrack(mic, true);
+        mic.stop();
+        setCapture({ ...captureRef.current, mic: undefined, micMuted: false });
+        return;
+      }
       const next = await captureMic();
+      if (epoch !== epochRef.current) {
+        // 기다리는 사이 화면을 떠났거나 방송이 끝났다
+        next?.stop();
+        return;
+      }
       if (!next) {
         setMessage("마이크를 사용할 수 없습니다. 브라우저의 마이크 권한을 확인해 주세요.");
         return;

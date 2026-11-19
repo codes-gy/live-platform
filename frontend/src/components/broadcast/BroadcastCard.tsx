@@ -7,19 +7,12 @@ import { describeTime, formatAgo, formatDuration, type Broadcast } from "@/lib/b
 import { OwnerAvatar } from "./OwnerAvatar";
 import { StatusBadge } from "./StatusBadge";
 
-/** 방송자가 올린 송출 화면은 30초마다 바뀐다. 주소에 그 주기를 붙여 브라우저 캐시를 넘긴다. */
-function thumbnailSrc(broadcast: Broadcast, now: number): string | null {
-  if (broadcast.status === "READY" || !now) return null;
-  const version = broadcast.status === "LIVE" ? Math.floor(now / 30_000) : broadcast.endedAt;
-  return `/api/broadcasts/${broadcast.id}/thumbnail?v=${version}`;
-}
-
-/** 송출 화면 썸네일. 없으면(방송 전 · 올라오기 전) 누구의 방송인지와 상태를 보여 준다. 제목은 카드 아래에만 둔다. */
+/** 송출 화면 썸네일(방송 중 30초마다 바뀜). 없으면(방송 전 · 올라오기 전) 누구의 방송인지와 상태를 보여 준다. 제목은 카드 아래에만 둔다. */
 function Screen({ broadcast, now }: { broadcast: Broadcast; now: number }) {
   const live = broadcast.status === "LIVE";
-  const src = thumbnailSrc(broadcast, now);
+  const src = broadcast.thumbnailUpdatedAt && `/api/broadcasts/${broadcast.id}/thumbnail?v=${encodeURIComponent(broadcast.thumbnailUpdatedAt)}`;
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const thumbnail = src !== null && src !== failedSrc;
+  const shown = src && src !== failedSrc ? src : null;
   const elapsed = formatDuration(broadcast.startedAt, null, now);
   const caption = live
     ? elapsed === "1분 미만" ? "방금 시작" : `${elapsed}째 방송 중`
@@ -34,9 +27,9 @@ function Screen({ broadcast, now }: { broadcast: Broadcast; now: number }) {
           : "border-line bg-surface-2 group-hover:border-muted/40"
       }`}
     >
-      {thumbnail ? (
+      {shown ? (
         <>
-          <Image src={src} alt="" fill unoptimized sizes="(min-width: 1024px) 25vw, 50vw" className="bg-black object-contain" onError={() => setFailedSrc(src)} />
+          <Image src={shown} alt="" fill unoptimized sizes="(min-width: 1024px) 25vw, 50vw" className="bg-black object-contain" onError={() => setFailedSrc(shown)} />
           <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-1.5 pt-6 text-xs font-medium text-white">{caption}</span>
         </>
       ) : (

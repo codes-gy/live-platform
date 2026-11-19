@@ -38,7 +38,7 @@ async function fetchFirst(tab: Tab): Promise<State> {
 }
 
 export function BroadcastList() {
-  const [tab, setTab] = useState<Tab>(TABS[1]) // 방송 중인 게 없을 때 첫 화면이 비지 않게 "전체";
+  const [tab, setTab] = useState<Tab>(TABS[1]); // 방송 중인 게 없을 때 첫 화면이 비지 않게 "전체"
   const [state, setState] = useState<State>({ kind: "loading" });
   const [loadingMore, setLoadingMore] = useState(false);
   // 시각은 데이터를 받을 때 정한다(미리 렌더링할 때 Date.now()를 쓰지 않는다)
@@ -53,7 +53,8 @@ export function BroadcastList() {
     let active = true;
     const refresh = () => fetchFirst(tab).then((result) => active && apply(result));
     refresh();
-    const timer = tab.status === "LIVE" ? setInterval(refresh, LIVE_REFRESH_MS) : undefined;
+    // 방송 중인 카드(썸네일 · 경과 시간)가 있을 수 있는 탭은 주기적으로 다시 읽는다
+    const timer = tab.status === "ENDED" ? undefined : setInterval(refresh, LIVE_REFRESH_MS);
     return () => {
       active = false;
       clearInterval(timer);

@@ -13,7 +13,9 @@ public record BroadcastResponse(
 		Instant startedAt,
 		Instant endedAt,
 		Instant createdAt,
-		Instant updatedAt
+		Instant updatedAt,
+		/** 썸네일이 없으면 null. 카드가 이 값을 썸네일 주소의 버전으로 쓴다 */
+		Instant thumbnailUpdatedAt
 ) {
 
 	public record Owner(Long id, String nickname) {
@@ -22,6 +24,6 @@ public record BroadcastResponse(
 	public static BroadcastResponse from(Broadcast b) {
 		return new BroadcastResponse(b.getId(), b.getTitle(), b.getDescription(), b.getStatus(),
 				new Owner(b.getOwner().getId(), b.getOwner().getNickname()),
-				b.getStartedAt(), b.getEndedAt(), b.getCreatedAt(), b.getUpdatedAt());
+				b.getStartedAt(), b.getEndedAt(), b.getCreatedAt(), b.getUpdatedAt(), b.getThumbnailUpdatedAt());
 	}
 }
