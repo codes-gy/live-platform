@@ -65,6 +65,11 @@ public class BroadcastService {
 		return requireOwner(find(broadcastId), userId);
 	}
 
+	/** 방송 중 소유자만 하는 일(썸네일 올리기 등)의 관문 */
+	public void requireLiveOwned(Long userId, Long broadcastId) {
+		findOwned(userId, broadcastId).checkLive();
+	}
+
 	/**
 	 * findOwned에 행 잠금을 더한 것. 상태를 바꾸거나(시작 · 종료) 엔티티 전체를 다시 쓰는(수정 · 삭제) 요청끼리
 	 * 직렬화해, 수정이 동시에 끝난 종료를 LIVE로 되돌려 쓰는 일을 막는다.

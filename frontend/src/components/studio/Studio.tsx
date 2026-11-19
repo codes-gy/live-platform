@@ -11,6 +11,7 @@ import { CommentPanel } from "../comment/CommentPanel";
 import { Card, ErrorMessage, Notice, PrimaryButton } from "../ui";
 import { canCaptureCamera, canCaptureScreen, type Capture, type StudioMode } from "./media";
 import { useBroadcastSession } from "./useBroadcastSession";
+import { useThumbnailUpload } from "./useThumbnailUpload";
 import { useWakeLock } from "./useWakeLock";
 
 type State = { kind: "loading" } | BroadcastLoad;
@@ -114,6 +115,7 @@ function Session({ broadcast, canScreen, canCamera }: { broadcast: Broadcast; ca
     };
   }, [guarded]);
   useWakeLock(guarded);
+  useThumbnailUpload(broadcast.id, capture.video?.track, phase.kind === "live");
 
   const viewers = useViewerCount(phase.kind === "live" || phase.kind === "ending" ? phase.room : null);
 

@@ -123,6 +123,8 @@ stateDiagram-v2
 | `POST /api/livekit/webhook` | LiveKit 서명 | room_finished · participant_left |
 | `GET /api/broadcasts/{id}/comments?before=&size=` | 공개 | 최신순 커서 `{items, hasNext, nextBefore}` |
 | `GET /api/broadcasts/{id}/comments/stream` | 공개 | SSE: `comment` · `comment-updated` · `comment-deleted` · `ended` |
+| `PUT /api/broadcasts/{id}/thumbnail` | 소유자 · 방송 중 | 송출 화면 JPEG(300KB 이하). 스튜디오가 30초마다 올리고 방송마다 마지막 1장만 둔다 |
+| `GET /api/broadcasts/{id}/thumbnail` | 공개 | 목록 카드 썸네일(`image/jpeg`). 없으면 404, 카드는 방송자 아바타로 대신한다 |
 | `POST /api/broadcasts/{id}/comments` | 로그인 | LIVE만 |
 | `PATCH` · `DELETE /api/broadcasts/{id}/comments/{cid}` | 작성자(삭제는 + 방송 소유자) | |
 
