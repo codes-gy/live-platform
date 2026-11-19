@@ -76,7 +76,7 @@ export function BroadcastForm({
     setValues((v) => ({ ...v, [key]: event.target.value }));
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
+    <form onSubmit={handleSubmit} method="post" className="flex flex-col gap-5" noValidate>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-baseline justify-between">
           <label htmlFor="title" className="text-sm font-medium">
