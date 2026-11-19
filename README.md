@@ -18,7 +18,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 |---|---|
 | PC 방송 | 화면(탭 · 창 · 전체 화면) 공유 + 탭/시스템 소리 + 마이크 동시 송출(최대 1080p 60fps), 송출 중 화면 바꾸기 · 마이크 음소거, 마이크 음량 표시 |
 | 모바일 방송 | 휴대폰 카메라 + 마이크 송출, 전면/후면 카메라 전환, 방송 중 화면 꺼짐 방지 |
-| 시청 | 목록(방송 중 · 전체 · 종료) → 상세에서 바로 재생, 로그인 불필요, 시청자 수 · 소리 켜기 · 전체 화면 |
+| 시청 | 목록(방송 중 · 전체 · 종료, 송출 화면 썸네일 30초마다 갱신) → 상세에서 바로 재생, 로그인 불필요, 시청자 수 · 소리 켜기 · 전체 화면 |
 | 방송 관리 | 등록 · 수정 · 삭제, 상태 `방송 전 → 방송 중 → 종료`, 종료 시 송출 연결 즉시 끊김, 새로고침해도 30초 안에 "방송 재개" |
 | 인증 · 인가 | 회원가입 · 로그인 · 로그아웃(JWT HttpOnly 쿠키), 수정 · 삭제 · 송출 제어는 서버가 소유자 확인 |
 | 댓글 (선택) | 방송별 실시간 댓글(SSE), 작성자만 수정, 작성자 · 방송자가 삭제 |
@@ -98,7 +98,7 @@ PC 화면 공유나 휴대폰 카메라로 라이브 방송을 송출하고, 다
 | Backend | Java 25, Spring Boot 4.1, Spring Security(JWT HttpOnly 쿠키), Spring Data JPA, PostgreSQL 18, Flyway, springdoc(Swagger) |
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | Streaming | LiveKit (WebRTC SFU) — `livekit-client`, `@livekit/components-react`, `livekit-server` Java SDK |
-| Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 103개 |
+| Test | JUnit 5, Testcontainers(PostgreSQL), MockMvc — 109개 |
 | Infra | Heroku(컨테이너), Neon(PostgreSQL), LiveKit Cloud, GitHub Actions(CI) |
 
 ## 구조
@@ -167,7 +167,7 @@ npm run dev                                # http://localhost:3000
 
 ### 3. 테스트
 ```bash
-(cd backend && ./gradlew test)                 # 103개, Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
+(cd backend && ./gradlew test)                 # 109개, Testcontainers가 PostgreSQL을 띄움 → Docker 실행 필요
 (cd frontend && npm run lint && npm run build)
 (cd frontend && E2E_BASE_URL=http://localhost:3000 npm run e2e)   # 브라우저 E2E (실행 중인 서버 필요, frontend/e2e/README.md)
 ```

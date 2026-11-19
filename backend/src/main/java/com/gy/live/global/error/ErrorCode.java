@@ -21,6 +21,9 @@ public enum ErrorCode {
 	BROADCAST_ENDED(HttpStatus.CONFLICT, "이미 종료된 방송입니다."),
 	BROADCAST_LIVE_CANNOT_DELETE(HttpStatus.CONFLICT, "방송 중에는 삭제할 수 없습니다. 방송을 먼저 종료해 주세요."),
 
+	THUMBNAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "썸네일이 없습니다."),
+	INVALID_THUMBNAIL(HttpStatus.BAD_REQUEST, "썸네일은 300KB 이하의 JPEG만 올릴 수 있습니다."),
+
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
 	NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "댓글 작성자만 할 수 있습니다."),
 
