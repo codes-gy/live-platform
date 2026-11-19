@@ -28,6 +28,10 @@ public class User {
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
+	/** 프로필 이미지 업로드가 직접 SQL로 바꾼다. 엔티티 저장이 덮어쓰지 않게 읽기 전용으로 둔다. */
+	@Column(name = "avatar_updated_at", insertable = false, updatable = false)
+	private Instant avatarUpdatedAt;
+
 	protected User() {
 	}
 
@@ -56,5 +60,9 @@ public class User {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public Instant getAvatarUpdatedAt() {
+		return avatarUpdatedAt;
 	}
 }

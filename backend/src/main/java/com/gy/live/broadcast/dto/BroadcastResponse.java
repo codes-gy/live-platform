@@ -18,12 +18,13 @@ public record BroadcastResponse(
 		Instant thumbnailUpdatedAt
 ) {
 
-	public record Owner(Long id, String nickname) {
+	/** avatarUpdatedAt: 프로필 이미지가 없으면 null */
+	public record Owner(Long id, String nickname, Instant avatarUpdatedAt) {
 	}
 
 	public static BroadcastResponse from(Broadcast b) {
 		return new BroadcastResponse(b.getId(), b.getTitle(), b.getDescription(), b.getStatus(),
-				new Owner(b.getOwner().getId(), b.getOwner().getNickname()),
+				new Owner(b.getOwner().getId(), b.getOwner().getNickname(), b.getOwner().getAvatarUpdatedAt()),
 				b.getStartedAt(), b.getEndedAt(), b.getCreatedAt(), b.getUpdatedAt(), b.getThumbnailUpdatedAt());
 	}
 }

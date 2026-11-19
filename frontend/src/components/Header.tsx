@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "./auth/AuthProvider";
+import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 
 export function Header() {
@@ -54,8 +55,9 @@ export function Header() {
           )}
           {user && (
             <>
-              <Link href="/my" className="hidden max-w-32 truncate rounded-md px-2 py-1.5 font-medium hover:bg-surface-2 sm:block">
-                {user.nickname}
+              <Link href="/my" className="flex items-center gap-2 rounded-md px-1.5 py-1 font-medium hover:bg-surface-2" aria-label={`${user.nickname} 내 정보`}>
+                <Avatar user={user} size="sm" />
+                <span className="hidden max-w-32 truncate sm:block">{user.nickname}</span>
               </Link>
               <button
                 type="button"

@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { Avatar } from "../Avatar";
 import { describeTime, formatAgo, formatDuration, type Broadcast } from "@/lib/broadcast";
-import { OwnerAvatar } from "./OwnerAvatar";
 import { StatusBadge } from "./StatusBadge";
 
 /** 송출 화면 썸네일(방송 중 30초마다 바뀜). 없으면(방송 전 · 올라오기 전) 누구의 방송인지와 상태를 보여 준다. 제목은 카드 아래에만 둔다. */
@@ -34,7 +34,7 @@ function Screen({ broadcast, now }: { broadcast: Broadcast; now: number }) {
         </>
       ) : (
         <>
-          <OwnerAvatar nickname={broadcast.owner.nickname} live={live} />
+          <Avatar user={broadcast.owner} live={live} />
           <span className={`text-xs font-medium ${live ? "text-live-strong" : "text-muted"}`}>{caption}</span>
         </>
       )}

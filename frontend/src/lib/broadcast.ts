@@ -7,7 +7,7 @@ export type Broadcast = {
   title: string;
   description: string | null;
   status: BroadcastStatus;
-  owner: { id: number; nickname: string };
+  owner: { id: number; nickname: string; avatarUpdatedAt: string | null };
   startedAt: string | null;
   endedAt: string | null;
   createdAt: string;

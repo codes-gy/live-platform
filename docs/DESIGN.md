@@ -125,6 +125,9 @@ stateDiagram-v2
 | `GET /api/broadcasts/{id}/comments/stream` | 공개 | SSE: `comment` · `comment-updated` · `comment-deleted` · `ended` |
 | `PUT /api/broadcasts/{id}/thumbnail` | 소유자 · 방송 중 | 송출 화면 JPEG(300KB 이하). 스튜디오가 30초마다 올리고 방송마다 마지막 1장만 둔다 |
 | `GET /api/broadcasts/{id}/thumbnail` | 공개 | 목록 카드 썸네일(`image/jpeg`). 없으면 404, 카드는 방송자 아바타로 대신한다 |
+| `PUT /api/users/me/avatar` | 본인 | 프로필 이미지 JPEG(200KB 이하). 화면이 가운데 기준 256px 정사각형으로 줄여 보낸다 |
+| `DELETE /api/users/me/avatar` | 본인 | 프로필 이미지 삭제 |
+| `GET /api/users/{id}/avatar` | 공개 | 프로필 이미지(`image/jpeg`). 사용자 · 방송 소유자 응답의 `avatarUpdatedAt`을 버전으로 붙여 부른다 |
 | `POST /api/broadcasts/{id}/comments` | 로그인 | LIVE만 |
 | `PATCH` · `DELETE /api/broadcasts/{id}/comments/{cid}` | 작성자(삭제는 + 방송 소유자) | |
 
