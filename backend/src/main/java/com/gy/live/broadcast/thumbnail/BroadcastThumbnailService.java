@@ -11,8 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class BroadcastThumbnailService {
 
-	static final int MAX_BYTES = 300 * 1024;
-
 	private final BroadcastService broadcastService;
 	private final BroadcastThumbnailRepository thumbnailRepository;
 
@@ -24,9 +22,6 @@ public class BroadcastThumbnailService {
 	@Transactional
 	public void upload(Long userId, Long broadcastId, byte[] image) {
 		broadcastService.requireLiveOwned(userId, broadcastId);
-		if (image.length > MAX_BYTES || !isJpeg(image)) {
-			throw new BusinessException(ErrorCode.INVALID_THUMBNAIL);
-		}
 		Instant now = Instant.now();
 		thumbnailRepository.upsert(broadcastId, image, now);
 		thumbnailRepository.touchBroadcast(broadcastId, now);
@@ -36,10 +31,5 @@ public class BroadcastThumbnailService {
 	public BroadcastThumbnail get(Long broadcastId) {
 		return thumbnailRepository.findById(broadcastId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.THUMBNAIL_NOT_FOUND));
-	}
-
-	/** 공개 GET으로 그대로 내보내므로 JPEG 시작 표식(FF D8 FF)이 아닌 것은 받지 않는다 */
-	private static boolean isJpeg(byte[] image) {
-		return image.length > 3 && (image[0] & 0xFF) == 0xFF && (image[1] & 0xFF) == 0xD8 && (image[2] & 0xFF) == 0xFF;
 	}
 }

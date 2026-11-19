@@ -109,7 +109,7 @@ class BroadcastThumbnailControllerTest {
 		setLive(false);
 		mockMvc.perform(put(url()).cookie(owner).contentType(MediaType.IMAGE_JPEG).content(new byte[] {1, 2, 3, 4}))
 				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_THUMBNAIL"));
-		byte[] big = new byte[BroadcastThumbnailService.MAX_BYTES + 1];
+		byte[] big = new byte[BroadcastThumbnailController.MAX_BYTES + 1];
 		big[0] = (byte) 0xFF;
 		big[1] = (byte) 0xD8;
 		big[2] = (byte) 0xFF;

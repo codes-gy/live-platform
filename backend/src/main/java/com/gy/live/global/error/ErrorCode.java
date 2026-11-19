@@ -24,6 +24,9 @@ public enum ErrorCode {
 	THUMBNAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "썸네일이 없습니다."),
 	INVALID_THUMBNAIL(HttpStatus.BAD_REQUEST, "썸네일은 300KB 이하의 JPEG만 올릴 수 있습니다."),
 
+	AVATAR_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필 이미지가 없습니다."),
+	INVALID_AVATAR(HttpStatus.BAD_REQUEST, "프로필 이미지는 200KB 이하의 JPEG만 올릴 수 있습니다."),
+
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
 	NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "댓글 작성자만 할 수 있습니다."),
 

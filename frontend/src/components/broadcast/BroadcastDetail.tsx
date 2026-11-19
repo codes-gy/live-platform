@@ -1,13 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatDateTime, formatDuration, loadBroadcast, type Broadcast, type BroadcastLoad } from "@/lib/broadcast";
+import { Avatar } from "../Avatar";
 import { CommentPanel } from "../comment/CommentPanel";
 import { Notice } from "../ui";
 import { LivePlayer } from "./LivePlayer";
 import { OwnerActions } from "./OwnerActions";
-import { OwnerAvatar } from "./OwnerAvatar";
 import { ShareBroadcast } from "./ShareBroadcast";
 import { StatusBadge } from "./StatusBadge";
 
@@ -117,17 +118,35 @@ export function BroadcastDetail({ id }: { id: number }) {
   );
 }
 
+/** 종료된 방송은 마지막 썸네일을 흐리게 깔아 어떤 방송이었는지 보여 준다. */
 function OfflineScreen({ broadcast }: { broadcast: Broadcast }) {
   const ended = broadcast.status === "ENDED";
+  const thumbnail =
+    ended && broadcast.thumbnailUpdatedAt
+      ? `/api/broadcasts/${broadcast.id}/thumbnail?v=${encodeURIComponent(broadcast.thumbnailUpdatedAt)}`
+      : null;
   return (
-    <div className="flex aspect-video w-full flex-col items-center justify-center gap-3 rounded-xl border border-line bg-surface p-6 text-center" role="status">
-      <OwnerAvatar nickname={broadcast.owner.nickname} />
-      <p className="text-lg font-semibold">{ended ? "방송이 종료되었습니다" : "아직 방송 전입니다"}</p>
-      <p className="text-sm text-muted">
-        {ended
-          ? `${broadcast.owner.nickname}님이 ${formatDuration(broadcast.startedAt, broadcast.endedAt)} 동안 방송했습니다.`
-          : "방송이 시작되면 이 화면에서 바로 이어서 볼 수 있습니다."}
-      </p>
+    <div
+      className={`relative flex aspect-video w-full flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border p-6 text-center ${
+        thumbnail ? "border-transparent bg-black text-white" : "border-line bg-surface"
+      }`}
+      role="status"
+    >
+      {thumbnail && (
+        <>
+          <Image src={thumbnail} alt="" fill unoptimized className="object-contain opacity-60" />
+          <span className="absolute inset-0 bg-black/45" />
+        </>
+      )}
+      <div className="relative flex flex-col items-center gap-3">
+        <Avatar user={broadcast.owner} />
+        <p className="text-lg font-semibold">{ended ? "방송이 종료되었습니다" : "아직 방송 전입니다"}</p>
+        <p className={`text-sm ${thumbnail ? "text-white/80" : "text-muted"}`}>
+          {ended
+            ? `${broadcast.owner.nickname}님이 ${formatDuration(broadcast.startedAt, broadcast.endedAt)} 동안 방송했습니다.`
+            : "방송이 시작되면 이 화면에서 바로 이어서 볼 수 있습니다."}
+        </p>
+      </div>
     </div>
   );
 }
