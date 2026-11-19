@@ -6,6 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { formatDateTime, formatDuration, loadBroadcast, type Broadcast, type BroadcastLoad } from "@/lib/broadcast";
 import { Avatar } from "../Avatar";
 import { CommentPanel } from "../comment/CommentPanel";
+import { BroadcastRecordings } from "../recording/BroadcastRecordings";
+import { DonationPanel } from "../donation/DonationPanel";
 import { Notice } from "../ui";
 import { LivePlayer } from "./LivePlayer";
 import { OwnerActions } from "./OwnerActions";
@@ -110,13 +112,17 @@ export function BroadcastDetail({ id }: { id: number }) {
           </dl>
           <OwnerActions broadcast={b} />
           {b.status !== "ENDED" && <ShareBroadcast />}
+          {b.status === "ENDED" && <BroadcastRecordings broadcastId={b.id} />}
         </header>
 
         {b.description && (
           <p className="whitespace-pre-wrap break-words rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed">{b.description}</p>
         )}
       </article>
-      <CommentPanel key={b.id} broadcast={b} onEnded={load} />
+      <div className="flex min-w-0 flex-col gap-4">
+        <DonationPanel key={`d-${b.id}`} broadcast={b} />
+        <CommentPanel key={b.id} broadcast={b} onEnded={load} />
+      </div>
     </div>
   );
 }

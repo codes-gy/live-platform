@@ -9,8 +9,48 @@ public record AppProperties(
 		List<String> corsAllowedOrigins,
 		Jwt jwt,
 		Cookie cookie,
-		Livekit livekit
+		Livekit livekit,
+		Toss toss,
+		Recording recording
 ) {
+
+	/**
+	 * 녹화(LiveKit Egress가 Cloudflare R2에 MP4로 올린다). 비어 있으면 녹화하지 않고 방송만 한다.
+	 *
+	 * @param r2AccountId       Cloudflare 계정 ID(엔드포인트 https://{id}.r2.cloudflarestorage.com)
+	 * @param r2AccessKeyId     R2 API 토큰의 Access Key ID
+	 * @param r2SecretAccessKey R2 API 토큰의 Secret Access Key(서버에서만 쓴다)
+	 * @param r2Bucket          비공개 버킷
+	 * @param playbackTtl       재생용 서명 주소 유효 시간
+	 */
+	public record Recording(String r2AccountId, String r2AccessKeyId, String r2SecretAccessKey, String r2Bucket,
+			java.time.Duration playbackTtl) {
+
+		public boolean configured() {
+			return isPresent(r2AccountId) && isPresent(r2AccessKeyId) && isPresent(r2SecretAccessKey) && isPresent(r2Bucket);
+		}
+
+		public String endpoint() {
+			return "https://" + r2AccountId + ".r2.cloudflarestorage.com";
+		}
+
+		private static boolean isPresent(String value) {
+			return value != null && !value.isBlank();
+		}
+	}
+
+	/**
+	 * 토스페이먼츠(API 개별 연동, 테스트 모드 키 test_ck_ · test_sk_).
+	 *
+	 * @param clientKey 결제창을 여는 공개 키(브라우저에 내려준다)
+	 * @param secretKey 결제 승인용 비밀 키(서버에서만 쓴다)
+	 */
+	public record Toss(String clientKey, String secretKey) {
+
+		public boolean configured() {
+			return clientKey != null && !clientKey.isBlank() && secretKey != null && !secretKey.isBlank();
+		}
+	}
 
 	/** secret은 HS256 서명용으로 32바이트 이상이어야 한다. */
 	public record Jwt(String secret, Duration accessTokenTtl) {

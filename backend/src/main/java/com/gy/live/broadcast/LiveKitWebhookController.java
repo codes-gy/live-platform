@@ -1,6 +1,7 @@
 package com.gy.live.broadcast;
 
 import com.gy.live.livekit.LiveKitWebhookVerifier;
+import com.gy.live.recording.RecordingService;
 import livekit.LivekitWebhook.WebhookEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +20,13 @@ public class LiveKitWebhookController {
 
 	private final LiveKitWebhookVerifier verifier;
 	private final BroadcastLiveService liveService;
+	private final RecordingService recordingService;
 
-	public LiveKitWebhookController(LiveKitWebhookVerifier verifier, BroadcastLiveService liveService) {
+	public LiveKitWebhookController(LiveKitWebhookVerifier verifier, BroadcastLiveService liveService,
+			RecordingService recordingService) {
 		this.verifier = verifier;
 		this.liveService = liveService;
+		this.recordingService = recordingService;
 	}
 
 	@PostMapping(value = "/api/livekit/webhook", consumes = {"application/webhook+json", "application/json"})
@@ -34,6 +38,7 @@ public class LiveKitWebhookController {
 			case "room_finished" -> liveService.onRoomFinished(event.getRoom().getName());
 			case "participant_left" ->
 					liveService.onParticipantLeft(event.getRoom().getName(), event.getParticipant().getIdentity());
+			case "egress_ended" -> recordingService.onEgressEnded(event.getEgressInfo());
 			default -> {
 			}
 		}

@@ -43,3 +43,14 @@ app:
     # 웹훅이 유실돼 LIVE로 남은 방송을 찾는 주기(LiveReconcileScheduler)
     reconcile-interval: 1m
     token-ttl: 1h
+  # 도네이션(토스페이먼츠 테스트 모드). 비어 있으면 후원 주문 · 승인 API가 503
+  toss:
+    client-key: ${TOSS_CLIENT_KEY:}
+    secret-key: ${TOSS_SECRET_KEY:}
+  # 녹화(LiveKit Egress → Cloudflare R2). 비어 있으면 녹화 없이 방송만 한다
+  recording:
+    r2-account-id: ${R2_ACCOUNT_ID:}
+    r2-access-key-id: ${R2_ACCESS_KEY_ID:}
+    r2-secret-access-key: ${R2_SECRET_ACCESS_KEY:}
+    r2-bucket: ${R2_BUCKET:}
+    playback-ttl: 2h

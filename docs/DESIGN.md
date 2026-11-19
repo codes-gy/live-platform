@@ -288,9 +288,9 @@ stateDiagram-v2
 - 카메라: 휴대폰에서 60fps가 불안정해 30fps, 최상위 층 2.5Mbps, 보조 층(180p · 360p)도 30fps.
 - 시청: `adaptiveStream: { pixelDensity: "screen" }`로 화면 해상도에 맞는 층을 받는다(`LivePlayer`).
 
-## 7. 선택 기능 설계 (미구현)
+## 7. 선택 기능 설계
 
-### 7.1 도네이션 (#12, 토스페이먼츠 테스트 모드)
+### 7.1 도네이션 (#12, 토스페이먼츠 테스트 모드, 구현됨)
 
 ```mermaid
 sequenceDiagram
@@ -314,12 +314,37 @@ sequenceDiagram
 - 금액 · 대상은 **서버에 저장한 주문**과 대조한다(클라이언트 값 불신).
 - 같은 승인 통지가 반복돼도 `payment_key` · `order_id` 유니크 제약과 주문 상태 확인으로 한 번만 적립한다.
 - 방송별 후원 내역 · 합계 조회 API, 상세 화면에 합계 표시.
+- 구현: 주문 · 결과를 `donations` 한 테이블(V7, `status` PENDING → DONE)에 둔다. 주문은 로그인 · 방송 중 · 자기 방송 아님 · 1천~100만 원. 승인은 주문 행을 `FOR UPDATE`로 잠그고, 이미 DONE이면 같은 `paymentKey`는 그대로 성공(토스 재호출 없음) · 다른 키는 409. 토스 승인 요청에 `Idempotency-Key: orderId`. API: `POST /api/broadcasts/{id}/donations/orders` · `POST /api/donations/confirm` · `GET /api/broadcasts/{id}/donations`(공개). 결제창 복귀 화면 `/donations/success` · `/donations/fail`
 
-### 7.2 녹화 · 다시보기 (#13)
+### 7.2 녹화 · 다시보기 (#13, 구현됨)
 
-- 송출 시작 시 LiveKit Room Composite Egress로 녹화를 시작하고, 종료(`BroadcastEndedEvent`) 때 멈춘다. 결과 파일은 S3 호환 스토리지에 저장한다.
-- `recordings(id, broadcast_id, egress_id, status, file_url, duration, created_at)`에 위치를 저장하고 `egress_ended` 웹훅으로 완료 처리한다.
-- 녹화 목록 · 상세 화면에서 `<video>`로 재생한다.
+```mermaid
+sequenceDiagram
+    participant A as Spring
+    participant L as LiveKit Cloud (Egress)
+    participant R as Cloudflare R2 (비공개 버킷)
+    participant D as PostgreSQL
+    actor V as 시청자
+
+    A->>A: start() 커밋 → BroadcastStartedEvent
+    A->>L: StartRoomCompositeEgress(방, MP4 720p, R2 업로드 설정)
+    A->>D: recordings(egress_id, RECORDING, object_key)
+    Note over L: 방송 내내 방 화면 · 소리를 녹화
+    A->>L: 종료 시 DeleteRoom → 녹화도 끝남
+    L->>R: MP4 업로드
+    L-->>A: 웹훅 egress_ended(파일 · 길이 · 크기)
+    A->>D: READY(길이 · 크기) 또는 FAILED
+    V->>A: GET /api/recordings/{id}
+    A-->>V: 서명된 R2 주소(2시간)
+    V->>R: <video> 재생
+```
+
+- 녹화 시작은 방송 시작이 **커밋된 뒤** 별도 스레드에서 한다(시작 응답을 늦추지 않음). 녹화는 부가 기능이라 시작에 실패해도 방송은 그대로 두고 녹화만 `FAILED`로 남긴다. R2 설정이 없으면 녹화를 시도하지 않는다.
+- 녹화 종료는 따로 부르지 않는다. 모든 종료 경로가 LiveKit 방을 닫으므로(소유자 종료 · 유예 만료 · 주기 정리) 방이 닫히면 Egress가 스스로 끝나고 `egress_ended`를 보낸다.
+- `recordings(broadcast_id, egress_id UNIQUE, status, object_key, duration_ms, size_bytes, error_message, created_at, ended_at)`(V8). `egress_ended`는 `egress_id`로 행을 잠그고 처리하며, 같은 알림이 반복돼도 결과가 같다.
+- 버킷은 **비공개**다. 상세 API가 요청마다 AWS SigV4 쿼리 서명으로 2시간짜리 GET 주소를 만든다(`R2RecordingStorage`, AWS SDK 없이 표준 라이브러리로 계산, 실제 R2로 확인).
+- API(모두 공개): `GET /api/recordings`(READY만 최신순), `GET /api/recordings/{id}`(READY면 `playbackUrl`), `GET /api/broadcasts/{id}/recordings`. 화면: `/recordings` 목록, `/recordings/[id]` 재생, 종료된 방송 상세의 "다시보기" 버튼, 헤더 메뉴.
+- 한도: LiveKit Cloud 무료 플랜은 녹화가 월 60분이다. 넘으면 Egress가 `EGRESS_LIMIT_REACHED` 등으로 끝나고 녹화는 `FAILED`가 된다.
 
 ## 8. 주요 결정과 이유
 
@@ -342,5 +367,5 @@ sequenceDiagram
 - 로그아웃은 쿠키만 지운다. 무상태 JWT라 이미 복사된 토큰은 만료(12시간)까지 유효하다.
 - 시스템 소리는 브라우저 · OS 제약(Windows Chrome/Edge만)을 따른다.
 - 세로 카메라 영상은 16:9 플레이어 안에 좌우 여백을 두고 표시된다.
-- 선택 기능 중 도네이션 · 녹화는 구현하지 않았다(7절은 설계만).
+- 선택 기능 중 녹화는 구현하지 않았다(7.2절은 설계만).
 - 시청자 수는 LiveKit 방 정보 갱신 주기와 3초 폴링 때문에 몇 초 늦게 바뀐다. 목록 카드에는 없다(서버가 방마다 참가자 수를 물어야 함).

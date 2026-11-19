@@ -12,4 +12,22 @@ public class FakeLiveKitConfig {
 	FakeLiveKitRoomClient fakeLiveKitRoomClient() {
 		return new FakeLiveKitRoomClient();
 	}
+
+	@Bean
+	@Primary
+	FakeLiveKitRecorder fakeLiveKitRecorder() {
+		return new FakeLiveKitRecorder();
+	}
+
+	@Bean
+	@Primary
+	FakeRecordingStorage fakeRecordingStorage() {
+		return new FakeRecordingStorage();
+	}
+
+	@Bean
+	@Primary
+	FakeTossPaymentsClient fakeTossPaymentsClient() {
+		return new FakeTossPaymentsClient();
+	}
 }

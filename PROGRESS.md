@@ -239,6 +239,29 @@
   - 운영 정리: 녹화 실패로 남은 READY 방송 #46 삭제. 시연 방송 #47 · #48 · #53~#56은 목록 썸네일용으로 남김
   - README 시연 영상 칸은 설명만 있고 **링크 미기재**(사용자 업로드 대기)
 
+- [x] (11-19 23:20~23:35) **#12 도네이션(토스페이먼츠 테스트 모드)**: 브랜치 `feature/donation/#12-donation`(origin/develop 02e69f4 기준), **로컬 커밋만 · push · PR · 운영 배포 전**. 제출본(main)과 분리하려고 별도 브랜치로 진행(사용자 요청)
+  - 백엔드: `donations`(V7, 주문 겸 결과, PENDING → DONE, `order_id` · `payment_key` UNIQUE, 방송 삭제 CASCADE). 패키지 `donation/`(`Donation` · `DonationService` · `DonationController` · `dto/DonationDtos` · `toss/TossPaymentsClient` + `HttpTossPaymentsClient`(RestClient, 시크릿 키 Basic, `Idempotency-Key: orderId`, 4xx → 거절 · 그 외 → 연결 실패))
+  - API: `POST /api/broadcasts/{id}/donations/orders`(로그인 · LIVE · 자기 방송 아님 · 1,000~1,000,000원 · 메시지 100자 → orderId · 금액 · clientKey), `POST /api/donations/confirm`(주문자만, 주문 행 잠금 → 금액 대조 → 토스 승인 → 응답 status DONE · 금액 · orderId 재대조 → 적립. 이미 DONE이면 같은 paymentKey는 그대로 200 · 토스 재호출 없음, 다른 키 409), `GET /api/broadcasts/{id}/donations`(공개, 합계 · 건수 · 최근 50건)
+  - 오류 코드: `DONATION_NOT_FOUND` · `CANNOT_DONATE_SELF` · `DONATION_AMOUNT_MISMATCH` · `DONATION_ALREADY_DONE` · `PAYMENT_REJECTED` · `PAYMENT_UNAVAILABLE` · `PAYMENT_NOT_CONFIGURED`(키 없으면 503)
+  - 설정 `app.toss.client-key|secret-key` ← `TOSS_CLIENT_KEY` · `TOSS_SECRET_KEY`(기본 빈 값, `.env.example`에 자리만). 테스트는 `FakeTossPaymentsClient`(승인 · 거절 · 연결 실패 · 다른 금액)
+  - 프론트: `@tosspayments/tosspayments-sdk` 2.10.0, 상세 오른쪽 `DonationPanel`(합계 · 건수 · 최근 내역, LIVE 15초 폴링, 금액 버튼 1천 · 5천 · 1만 · 5만 + 직접 입력 · 메시지, 비로그인 "로그인하고 후원하기", 자기 방송은 버튼 없음) → `payment({customerKey}).requestPayment({method: CARD})`, 복귀 화면 `/donations/success`(서버 confirm 1회) · `/donations/fail`
+  - 확인: **백엔드 테스트 120개 통과**(`DonationControllerTest` 6: 주문 → 승인 → 합계, 중복 승인 1회 적립 · 토스 1회 호출 · 다른 키 409, 금액 불일치 토스 미호출, 토스 거절 · 연결 실패 · 다른 금액 응답 미적립, 남의 주문 404, 주문 권한 · 상태 · 범위). 프론트 eslint · `next build` 통과
+  - **못 한 것**: 실제 토스 테스트 키로 결제창 → 승인 E2E(키 미설정), 운영 배포(Heroku api에 `TOSS_*` 설정 + Flyway V7 + web 배포 필요)
+  - 문서: REQUIREMENTS 17~19 ✅(별도 브랜치 표기) · DESIGN 7.1 구현 내용 · README 알려진 한계(도네이션 테스트 모드) · `.env.example`
+
+- [x] (11-20 새벽) **#12 도네이션 머지 · 운영 배포**(제출 마감 후): 다른 세션(shiner-41)이 같은 워크트리에서 구현한 커밋 281e464를 인계받아 PR #63 → CI 통과 → develop 머지. Heroku api에 TOSS_CLIENT_KEY · TOSS_SECRET_KEY(test_ 키, A: `.env`) 설정, api v18(Flyway V7 Neon 적용) · web v16 배포
+  - 운영 확인: 자기 방송 후원 주문 400, 다른 사용자 주문 200(orderId · test_ck 클라이언트 키), 금액 불일치 승인 400, 합계 API 200, 상세 후원 패널 → 토스 샌드박스 결제창(5,000원, "실제 결제가 안되는 테스트") 열림
+  - **미확인**: 결제창에서 실제 테스트 결제 → 승인 → 적립까지(샌드박스 화면 자동 조작 실패). 사용자 수동 확인 필요. 이슈 #12는 main 반영 전이라 열린 상태
+  - **main은 제출본(105e219) 그대로 둠**(마감 후 변경 여부 사용자 결정)
+
+- [x] (11-20 새벽) **#13 녹화 · 다시보기 구현 · 운영 배포**(제출 마감 후): PR #65 develop 머지(CI 백엔드 131개 통과)
+  - 사용자가 Cloudflare R2 버킷 `jiing-recordings`(비공개) · API 토큰을 만들어 A: `.env`에 `R2_ACCOUNT_ID` · `R2_ACCESS_KEY_ID` · `R2_SECRET_ACCESS_KEY` · `R2_BUCKET` 추가 → aws-cli 컨테이너로 업로드 · 목록 · 서명 GET · 삭제 확인
+  - 백엔드: `BroadcastStartedEvent`(start 트랜잭션) → `RecordingService`가 커밋 뒤 `liveTaskScheduler`에서 `SdkLiveKitRecorder.startRoomRecording`(Room Composite Egress, speaker 레이아웃, H264_720P_30, MP4, S3Upload=R2 endpoint · forcePathStyle) → `recordings`(V8) RECORDING. 시작 실패 시 FAILED 행만 남기고 방송은 계속. 녹화 종료는 방 삭제로 자동 → 웹훅 `egress_ended`에서 egress_id 행 잠금 후 READY(길이 ns→ms · 크기) / FAILED. 재생은 `R2RecordingStorage`(AWS SigV4 쿼리 서명, 표준 라이브러리, 2시간) — 실제 R2로 200 확인. 공개 API `GET /api/recordings` · `/api/recordings/{id}` · `/api/broadcasts/{id}/recordings`
+  - 함정: 생성자 2개(@Autowired 없으면 스프링이 기본 생성자를 찾다 컨텍스트 실패), jsonPath 필터 결과는 `[null]`이라 isEmpty 실패
+  - 프론트: `/recordings` 목록(썸네일 · 재생 시간) · `/recordings/[id]` `<video>` 재생, 종료 방송 상세 "다시보기" 버튼, 헤더 "다시보기" 메뉴
+  - Heroku api에 R2_* 설정, api v20 · web v17 배포. **운영 E2E**: 가짜 카메라 40초 송출 → 녹화 중 RECORDING → 종료 후 egress_ended 수신 → READY 38초 · 14.1MB → R2 서명 주소 206 video/mp4 → 설치된 Chrome으로 1280x720 재생 · 목록 카드 · 상세 다시보기 버튼 확인(자동화 Chromium은 H.264 코덱이 없어 재생 불가 — 확인은 `channel: chrome`). LiveKit 웹훅이 운영에서 실제로 도착함도 확인
+  - 남은 것: 이슈 #12 · #13은 main 반영 전이라 열림. LiveKit 무료 녹화 한도 월 60분(이번 시험 약 1분 사용)
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
@@ -257,7 +280,7 @@
 
 ## 다음 작업 (순서대로)
 0. (11-19 23:20) **사용자: 시연 영상 유튜브 일부 공개 업로드 → 링크 전달 → Claude가 README 시연 영상 칸에 링크 → develop · main 반영 → 저장소 URL 제출**(https://github.com/codes-gy/live-platform, 23:59 마감). 링크가 늦으면 먼저 제출
-0-1. 제출 후: #12 도네이션(토스 공개 테스트 키) · #13 녹화(R2 키 필요) 별도 브랜치. 운영 DB의 예전 `streamer@test.com` · `viewer@test.com`(공개 비밀번호) · E2E 계정 정리 여부 사용자 확인
+0-1. 제출 후: ~~#12 도네이션~~ **코드 완료(브랜치 `feature/donation/#12-donation`, 로컬 커밋)** → 사용자 승인 후 push · PR(`Closes #12`) · 토스 테스트 키로 결제창 실제 확인 · 운영 배포(api `TOSS_CLIENT_KEY` · `TOSS_SECRET_KEY` 설정 → api · web 배포, Flyway V7). 마감 후 main 반영 여부는 사용자 결정. #13 녹화(R2 키 필요) 별도 브랜치. 운영 DB의 예전 `streamer@test.com` · `viewer@test.com`(공개 비밀번호) · E2E 계정 정리 여부 사용자 확인
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)

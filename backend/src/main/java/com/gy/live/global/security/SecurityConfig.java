@@ -25,7 +25,7 @@ public class SecurityConfig {
 	};
 	/** 방송 아래 GET 전부(목록 · 상세 · 썸네일 · 댓글 목록 · 댓글 실시간 구독)와 프로필 이미지. 댓글 작성 · 수정 · 삭제는 인증 필요. */
 	private static final String[] PUBLIC_GET = {
-			"/api/broadcasts", "/api/broadcasts/**", "/api/users/*/avatar",
+			"/api/broadcasts", "/api/broadcasts/**", "/api/users/*/avatar", "/api/recordings", "/api/recordings/**",
 			"/actuator/health", "/swagger-ui/**", "/v3/api-docs/**"
 	};
 
