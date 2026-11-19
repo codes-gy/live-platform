@@ -74,6 +74,7 @@ public class BroadcastLiveService {
 		BroadcastResponse started = tx.execute(status -> {
 			Broadcast broadcast = broadcastService.lockOwned(user.id(), broadcastId);
 			broadcast.start();
+			events.publishEvent(new BroadcastStartedEvent(broadcast.getId()));
 			return BroadcastResponse.from(broadcast);
 		});
 		return publisherAccess(user, roomName, started);
