@@ -217,6 +217,20 @@
   - 시연 녹화 도구: scratchpad `rec/record.mjs`(LIVE 방송 대기 → 비로그인 시청 화면 + 수신 오디오 녹화 → mp4). 사용자는 다른 영상으로 촬영하기로 함
   - 배포: 이 Mac(heroku CLI 로그인 · Docker)에서 `scripts/deploy-heroku.sh web` 동작 확인
 
+- [x] (11-19) **제출 전 전체 점검 · 수정(이슈 #46, PR #47 코드 · PR #48 문서)** develop 머지 · 운영 배포(api v13 · web v10)
+  - 점검: 백엔드 · 프론트 · 제출물 3갈래 읽기 전용 점검(하위 에이전트). 인가 빈틈 · 비밀값 유출 없음, 운영 JWT_SECRET 고유값 확인
+  - 코드(#47): 방송 중 재게시 트랙도 화질 설정(Room `publishDefaults`, #44 누락분) · 수정/삭제도 행 잠금(`BroadcastService.lockOwned`로 통합) · 405/415를 500 대신 `UNSUPPORTED_REQUEST` · 댓글 SSE가 오류 응답으로 닫히면 3초 뒤 재연결 · 방송 중 앱 내 링크 이동 확인 창 · 마이크 중복 클릭 방지 · 첫 화면 기본 탭 "전체". 백엔드 테스트 103개
+  - 확인: 로컬 프론트 + 운영 API로 화면 바꾸기 뒤 1080p 54fps · 링크 클릭 확인 창, 운영 415 응답, **운영 E2E 4/4 통과**
+  - 문서(#48): REQUIREMENTS 필수 14/14 ✅ · ARCHITECTURE/DESIGN/DEPLOY 최신화 · README(CI 배지 · Swagger · 103개 · 알려진 한계 · 라이선스) · LICENSE(MIT) · PROGRESS 개인 경로 제거
+  - 운영 데이터: 정리 안 된 제목 방송 8 · 31 삭제. 32('ㄴ')는 LIVE라 손대지 않음(사용자 시험 방송으로 보임 → 끝나면 삭제)
+  - 이슈 #9 닫음(EC2 대신 Heroku + Neon). #12 · #13(선택)은 열어 둠
+  - 남은 정리: 하위 에이전트 워크트리 `<repo>/.claude/worktrees/agent-adef0222a30cca405`(브랜치 머지됨, 지워도 됨)
+
+- [x] (11-19) **방송 목록 썸네일(이슈 #50, PR #51)** develop 머지 · 운영 배포(Flyway V4 Neon 적용)
+  - 사용자 요청 "썸네일 추가해줘". 방송자 브라우저(`useThumbnailUpload`)가 송출 트랙을 480x270 JPEG로 30초마다 업로드(실패 시 3초 뒤 재시도), `broadcast_thumbnails`(방송 삭제 시 CASCADE)에 마지막 1장, 카드가 `?v=` 붙여 표시 · 없으면 아바타
+  - API: `PUT /api/broadcasts/{id}/thumbnail`(소유자 · LIVE · JPEG 300KB 이하 · FF D8 FF 검사), `GET` 공개(max-age 30). 대안 LiveKit Egress(유료) · 파일 저장(Heroku 디스크 휘발) 제외
+  - 테스트 109개(썸네일 6개). 로컬 전체 스택(임시 Postgres 5433 — 5432는 다른 프로젝트 kidly-postgres가 사용 중) + 운영에서 확인: 시작 8초 안에 200 image/jpeg 약 10KB, 30초 뒤 갱신, 카드 480px 표시, 방송 삭제 시 404
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
@@ -234,7 +248,7 @@
 - (11-15) 사용자 질문 "외부 서비스 의존을 줄일 수 없나" → 선택지 비교만 함(코드 변경 없음): ① LiveKit 오픈소스 서버 자체 호스팅(VPS · UDP 포트 필요, 코드 변경 거의 없음, Heroku는 UDP 불가) ② 직접 구현 HLS(MediaRecorder → WebSocket → ffmpeg 리먹싱, Heroku 가능, 지연 3~10초, #3 · #5 · #7 · #8 재작성) ③ P2P WebRTC(STUN/TURN 필요, 시청자 늘면 방송자 업로드 폭증). 추천: 마감 전엔 LiveKit Cloud 유지, 자립이 필요하면 ①. **사용자 결정 대기**
 
 ## 다음 작업 (순서대로)
-0. (11-17) ~~README + 운영 문서 PR~~ **PR #37 develop 머지 완료(이슈 #14 닫힘)** → ~~LiveKit 웹훅 URL 등록~~ **11-19 사용자 등록 완료**(`…/api/livekit/webhook`, 서명 없는 요청 401 · api health UP 확인. 실제 수신은 휴대폰 송출 때 탭 닫기 → 즉시 종료로 확인) → ~~실제 휴대폰 송출 확인~~ **11-19 사용자 확인 완료**(운영 주소, "잘 된다". 탭 닫기 → 웹훅 즉시 종료 여부는 따로 보고받지 않음) → (11-19 화질 개선 배포 완료, 실제 휴대폰 · PC로 화질 재확인 필요) → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
+0. (11-17) ~~README + 운영 문서 PR~~ **PR #37 develop 머지 완료(이슈 #14 닫힘)** → ~~LiveKit 웹훅 URL 등록~~ **11-19 사용자 등록 완료**(`…/api/livekit/webhook`, 서명 없는 요청 401 · api health UP 확인. 실제 수신은 휴대폰 송출 때 탭 닫기 → 즉시 종료로 확인) → ~~실제 휴대폰 송출 확인~~ **11-19 사용자 확인 완료**(운영 주소, "잘 된다". 탭 닫기 → 웹훅 즉시 종료 여부는 따로 보고받지 않음) → (11-19 화질 개선 · 전체 점검 수정 배포 완료, 실제 휴대폰 · PC로 화질 재확인 필요) → **시연 영상 촬영 · README 링크** → develop → main 반영 · 제출(11-19 23:59). 여유 있으면 #12 도네이션. 아래 1번(배포 마무리)은 0번으로 대체됨
 1. **배포 마무리(#9) — 사용자가 실행**, 순서는 `docs/DEPLOY.md` 6절 체크리스트: ① `scripts/heroku-livekit-config.sh`(루트 `.env` → 운영 api, 값 출력 안 함) ② LiveKit Cloud 웹훅 URL 등록 ③ `scripts/deploy-heroku.sh api`로 #34 반영 ④ DEPLOY.md 4.2 기능 확인(PC · 휴대폰 송출, 탭 오디오, 댓글, 종료, 탭 닫기 → 자동 종료) → 이슈 #9 닫기. 도메인(`pit-live.kro.kr` 유지 여부) 결정 대기
 2. README(#14) PR 올리기(push · PR은 `gh` 로그인된 환경에서, 사용자 승인 후) → 시연 영상(PC · 모바일 송출 · 시청 · 종료) 촬영 후 README 링크 채우기
 2-1. 화면 검토 후속(여유 있을 때): 휴대폰 헤더에 "방송 목록 · 내 방송" 메뉴(지금은 sm 미만에서 숨김), 상세에 "휴대폰으로 보기" QR · 링크 복사(시연용), 로그인 화면 테스트 계정 버튼 강조 (LIVE 방송 정리는 #34로 완료)
