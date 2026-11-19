@@ -38,7 +38,7 @@ export function LoginForm({ next }: { next: string }) {
         <h1 className="text-2xl font-bold">로그인</h1>
         <p className="mt-1 text-sm text-muted">방송을 만들고 송출하려면 로그인하세요. 시청은 로그인 없이도 됩니다.</p>
 
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
+        <form onSubmit={onSubmit} method="post" className="mt-6 flex flex-col gap-4" noValidate>
           <Field label="이메일" id="email" type="email" autoComplete="email" required placeholder="you@example.com" />
           <Field label="비밀번호" id="password" type="password" autoComplete="current-password" required />
           <ErrorMessage message={error} />

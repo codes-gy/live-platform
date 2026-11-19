@@ -39,7 +39,7 @@ export function SignupForm({ next }: { next: string }) {
         <h1 className="text-2xl font-bold">회원가입</h1>
         <p className="mt-1 text-sm text-muted">가입하면 바로 로그인됩니다.</p>
 
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4" noValidate>
+        <form onSubmit={onSubmit} method="post" className="mt-6 flex flex-col gap-4" noValidate>
           <Field label="이메일" id="email" type="email" autoComplete="email" required maxLength={255} />
           <Field label="닉네임" id="nickname" autoComplete="nickname" required maxLength={30} hint="방송과 채팅에 보이는 이름입니다. 30자까지." />
           <Field label="비밀번호" id="password" type="password" autoComplete="new-password" required minLength={8} maxLength={64} hint="8자 이상" />

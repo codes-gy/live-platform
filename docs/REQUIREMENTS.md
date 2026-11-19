@@ -49,7 +49,7 @@
 | 27 | **시연 영상 링크(필수)**: PC · 모바일 송출 · 시청 · 종료 과정 | ⬜ | 촬영 후 README에 링크 추가 |
 | 28 | 오픈소스 · 기존 코드 출처 명시 | ✅ | README "오픈소스 및 출처"(LiveKit · Pretendard OFL-1.1 등), 저장소 `LICENSE`(MIT) |
 | 29 | 민감 정보 미포함 | ✅ | `.env`는 gitignore, 예시는 `.env.example` |
-| 30 | 공개 저장소, 제출 시 `main` 반영 | 🟡 | 저장소 public. 제출 시 develop → main 머지 |
+| 30 | 공개 저장소, 제출 시 `main` 반영 | ✅ | 저장소 public. 11-19 develop → main 머지(PR #58), 기본 브랜치 main |
 
 ## 4. 요약 (2026-11-19, 제출일)
 
