@@ -97,7 +97,7 @@ export function LivePlayer({ broadcastId, onEnded }: Props) {
       connect
       audio={false}
       video={false}
-      options={{ adaptiveStream: true }}
+      options={{ adaptiveStream: { pixelDensity: "screen" } }}
       onDisconnected={onDisconnected}
       className="contents"
     >
