@@ -42,7 +42,7 @@
 
 | # | 항목 | 상태 | 비고 |
 |---|---|---|---|
-| 23 | 서비스 주소(실제 접속 가능한 URL) | ✅ | Heroku + Neon PostgreSQL: https://onair-live-web-28fc2f0d1715.herokuapp.com, 상시 운영. 11-17 운영 주소에서 LiveKit Cloud 송출 · 시청 · 댓글 SSE E2E 통과, 11-19 LiveKit 웹훅 등록 |
+| 23 | 서비스 주소(실제 접속 가능한 URL) | ✅ | Heroku + Neon PostgreSQL: https://onair-live-web-28fc2f0d1715.herokuapp.com, 매일 09:00~20:00(KST) 운영. 11-17 운영 주소에서 LiveKit Cloud 송출 · 시청 · 댓글 SSE E2E 통과, 11-19 LiveKit 웹훅 등록 |
 | 24 | 테스트 계정 또는 테스트 로그인 기능과 사용법 | ✅ | 운영에 회원가입으로 만든 `demo-streamer@example.com` · `demo-viewer@example.com` / `jiing2026!`. README "테스트 계정" 절 |
 | 25 | 실행 방법: 실행 환경 · 환경변수 예시 | ✅ | README "로컬 실행 방법"(요구 사항 · 환경변수 표 · 로컬 LiveKit · 테스트), `.env.example` |
 | 26 | 기능 확인: PC · 모바일 송출 · 시청 · 종료 방법과 지원 환경 | ✅ | README "기능 확인 방법" · "지원 환경". 11-19 운영 주소에서 실제 휴대폰 송출 · 다른 기기 시청 확인 |
@@ -55,7 +55,7 @@
 
 - 필수 14개: 완료 14. PC 화면 공유 + 탭/시스템 소리 + 마이크(PR #24), 휴대폰 카메라 + 마이크(PR #25) 머지, 11-19 운영 주소에서 실제 휴대폰 송출 → 다른 기기 시청 확인
 - 선택 8개: 완료 5(댓글 · 도네이션) · 미구현 3(녹화, 미구현 감점 없음). 도네이션은 별도 브랜치, 운영 반영 전
-- 제출 요건: 서비스 주소(Heroku + Neon 상시 운영) · 테스트 계정 · README 완료. 시연 영상 링크와 main 반영이 남음
+- 제출 요건: 서비스 주소(Heroku + Neon, 09~20시 운영) · 테스트 계정 · README 완료. 시연 영상 링크와 main 반영이 남음
 
 ## 5. 원문 요약
 

@@ -11,7 +11,7 @@
 | DB | Neon PostgreSQL (AWS us-east-1, Heroku US 리전과 같은 지역) | — |
 | 미디어 | LiveKit Cloud | — |
 
-- 다이노: 두 앱 모두 Basic 1개, **상시 운영**(심사 기간 접속 보장). 운영 시간 예약 워크플로(`dyno-schedule.yml`)는 꺼 두었다.
+- 다이노: 두 앱 모두 Basic 1개, **매일 09:00~20:00(KST) 운영**(`dyno-schedule.yml`이 켜고 끈다).
 - DB를 Heroku 애드온이 아닌 Neon에 둔 이유: 11-14에 Heroku Postgres 애드온이 앱에서 분리 · 삭제돼 운영이 멈춘 일이 있었다. DB를 앱 밖에 두면 앱을 정리하거나 다시 만들어도 데이터가 남는다. Neon 무료 플랜은 5분 동안 쓰지 않으면 잠들고 첫 요청에서 1초 안팎으로 깨어난다.
 
 ### 1.1 운영 설정 (백엔드, 값은 문서에 적지 않는다)
@@ -81,7 +81,7 @@ heroku releases:rollback v<번호> -a onair-live-api
 
 ### 1.6 운영 시간 예약 (꺼 둠)
 
-`.github/workflows/dyno-schedule.yml`은 다이노를 09:00에 켜고 20:00에 끈다(KST, 비용 절감용). 심사 기간에는 상시 운영을 위해 꺼 두었다. 다시 쓰려면 `gh workflow enable dyno-schedule.yml`.
+`.github/workflows/dyno-schedule.yml`은 다이노를 09:00에 켜고 20:00에 끈다(KST, 비용 절감용). 11-20부터 켜 두었다. 운영 시간 밖에 바로 켜려면 `gh workflow run dyno-schedule.yml -f action=on`, 예약을 멈추려면 `gh workflow disable dyno-schedule.yml`.
 
 ## 2. 대안: 자체 호스팅 (Docker Compose)
 
