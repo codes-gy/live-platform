@@ -204,7 +204,7 @@ flowchart LR
 ```
 
 - 서비스: https://onair-live-web-28fc2f0d1715.herokuapp.com (백엔드: https://onair-live-api-daf462a2a9af.herokuapp.com). 배포 · 확인 · 되돌리기는 [DEPLOY.md](DEPLOY.md).
-- 앱 2개 모두 Heroku 컨테이너 스택(US 리전), Basic 다이노(메모리 512MB, 잠들지 않음), **상시 운영**. 이미지는 `backend/Dockerfile` · `frontend/Dockerfile`, 배포는 `scripts/deploy-heroku.sh [api|web|all]`(로컬 Docker로 linux/amd64 빌드 → Heroku 레지스트리 푸시 → release).
+- 앱 2개 모두 Heroku 컨테이너 스택(US 리전), Basic 다이노(메모리 512MB, 잠들지 않음), **매일 09:00~20:00(KST) 운영**. 이미지는 `backend/Dockerfile` · `frontend/Dockerfile`, 배포는 `scripts/deploy-heroku.sh [api|web|all]`(로컬 Docker로 linux/amd64 빌드 → Heroku 레지스트리 푸시 → release).
   - Heroku 레지스트리는 Docker v2 매니페스트만 받는다. buildx 기본 OCI 형식 · 출처 증명은 `unsupported`로 거절 → `oci-mediatypes=false`, `--provenance=false`.
   - 프론트는 `output: "standalone"`. `BACKEND_URL`은 빌드 인자로 넣는다(rewrites가 빌드 시점에 읽음).
   - 512MB 안에 들도록 `JAVA_TOOL_OPTIONS`(힙 45% · SerialGC · 코드 캐시 48m · 메타스페이스 160m · C1만) + Tomcat 스레드 40. 처음 설정(힙 70%)은 R14 메모리 초과가 났다.
@@ -212,7 +212,7 @@ flowchart LR
 - 운영 환경변수(백엔드): `DB_*`, `JWT_SECRET`(무작위), `COOKIE_SECURE=true`, `CORS_ALLOWED_ORIGINS`(프론트 주소 — Next rewrite가 브라우저 `Origin`을 그대로 넘기므로 필요), `JAVA_TOOL_OPTIONS`, `SERVER_TOMCAT_THREADS_MAX`, `LIVEKIT_*`.
 - LiveKit Cloud 웹훅 URL: `https://onair-live-api-daf462a2a9af.herokuapp.com/api/livekit/webhook`.
 - 댓글 SSE는 Heroku 라우터 · Next rewrite를 거쳐도 버퍼링 없이 도착한다(구독 1초 안에 `:connected`, 20초 `:ping`이 라우터 유휴 제한 55초보다 짧음).
-- 운영 시간 예약(`.github/workflows/dyno-schedule.yml`, 09~20시 KST)은 심사 기간 상시 운영을 위해 꺼 두었다.
+- 운영 시간 예약(`.github/workflows/dyno-schedule.yml`)이 09:00에 다이노를 켜고 20:00에 끈다(KST). DB(Neon)는 항상 켜져 있다.
 - **대안: 자체 호스팅** — `docker-compose.prod.yml`(PostgreSQL · Spring · Next.js, 프론트만 `127.0.0.1:3300`) + `scripts/self-host.sh`(Tailscale Funnel로 HTTPS 공개). 호스팅 업체 없이 한 대에서 전부 띄울 수 있다. Cloudflare 임시 터널은 SSE를 지원하지 않아 제외했다(DEPLOY.md 2절).
 - 셸 스크립트는 `.gitattributes`로 LF를 강제한다(Windows 체크아웃의 CRLF 때문에 컨테이너에서 entrypoint가 실행되지 않았다).
 - 녹화 **(미구현, #13)**: 설계는 LiveKit Egress → S3 호환 스토리지([DESIGN.md](DESIGN.md) 7.2절).
