@@ -262,6 +262,12 @@
   - Heroku api에 R2_* 설정, api v20 · web v17 배포. **운영 E2E**: 가짜 카메라 40초 송출 → 녹화 중 RECORDING → 종료 후 egress_ended 수신 → READY 38초 · 14.1MB → R2 서명 주소 206 video/mp4 → 설치된 Chrome으로 1280x720 재생 · 목록 카드 · 상세 다시보기 버튼 확인(자동화 Chromium은 H.264 코덱이 없어 재생 불가 — 확인은 `channel: chrome`). LiveKit 웹훅이 운영에서 실제로 도착함도 확인
   - 남은 것: 이슈 #12 · #13은 main 반영 전이라 열림. LiveKit 무료 녹화 한도 월 60분(이번 시험 약 1분 사용)
 
+- [x] (11-19) **리뷰 후속(#52, PR #53) · 프로필 이미지 · 종료 방송 상세 썸네일(#54, PR #55)** develop 머지 · 운영 배포(api v15 · web v14, Flyway V5 · V6). 백엔드 테스트 114개, 운영 E2E 4/4
+  - #53: 응답에 `thumbnailUpdatedAt`(404 탐색 제거) · 썸네일 upsert · 업로드 크기 선검사 · 4xx면 재시도 중단 · 전체 탭 20초 갱신 · 마이크 토글 경합/epoch · 보조 키 클릭 제외. 리뷰의 "1280x1280이 정사각형으로 자른다"는 실제 카메라 측정으로 기각
+  - #55: `PUT/DELETE /api/users/me/avatar` · `GET /api/users/{id}/avatar`, `user_avatars` + `users.avatar_updated_at`, 공용 `Avatar`(카드 · 상세 · 헤더), 내 방송 화면 사진 올리기/지우기, 종료 상세에 마지막 썸네일, `JpegImages`로 업로드 검증 공통화
+  - 웹 이미지 빌드 · 업로드가 약 3시간 걸림(11-19 17:53 → 21:13)
+- [x] (11-20) **Heroku 운영 시간 09:00~20:00(KST) 예약(#68, PR #69)**: `dyno-schedule.yml` 다시 켜고 수동 실행 선택지 YAML 불리언 버그(`on`/`off` 따옴표) 수정, 문서의 "상시 운영" 수정. 수동 실행 `action=on` 성공(키 유효). 운영 시간 밖에 켜려면 `gh workflow run dyno-schedule.yml -f action=on`
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)
