@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -56,6 +57,10 @@ public class Donation {
 	@Column(name = "approved_at")
 	private Instant approvedAt;
 
+	/** 토스 승인을 요청한 시각(CONFIRMING일 때만 값이 있다). 결과를 모르는 주문을 정리할 때 기준이 된다. */
+	@Column(name = "confirm_requested_at")
+	private Instant confirmRequestedAt;
+
 	protected Donation() {
 	}
 
@@ -70,14 +75,38 @@ public class Donation {
 		this.createdAt = Instant.now();
 	}
 
+	/** 토스 승인을 부르기 직전에 표시한다. 승인 결과를 받기 전에 서버가 죽거나 응답이 끊겨도 이 표시가 남는다. */
+	public void startConfirm(String paymentKey, Instant now) {
+		this.paymentKey = paymentKey;
+		this.status = DonationStatus.CONFIRMING;
+		this.confirmRequestedAt = now;
+	}
+
 	public void approve(String paymentKey) {
 		this.paymentKey = paymentKey;
 		this.status = DonationStatus.DONE;
 		this.approvedAt = Instant.now();
+		this.confirmRequestedAt = null;
+	}
+
+	/** 승인되지 않은 것이 확실할 때(토스 거절 · 결제 없음 · 취소) 승인 전 주문으로 되돌린다. */
+	public void revertToPending() {
+		this.paymentKey = null;
+		this.status = DonationStatus.PENDING;
+		this.confirmRequestedAt = null;
 	}
 
 	public boolean isDone() {
 		return status == DonationStatus.DONE;
+	}
+
+	public boolean isConfirming() {
+		return status == DonationStatus.CONFIRMING;
+	}
+
+	/** 승인 요청이 아직 응답을 기다리는 중일 수 있는지(요청한 지 inFlight가 지나지 않았는지). */
+	public boolean isConfirmInFlight(Instant now, Duration inFlight) {
+		return isConfirming() && confirmRequestedAt != null && confirmRequestedAt.plus(inFlight).isAfter(now);
 	}
 
 	public boolean isOrderedBy(Long userId) {
@@ -122,5 +151,9 @@ public class Donation {
 
 	public Instant getApprovedAt() {
 		return approvedAt;
+	}
+
+	public Instant getConfirmRequestedAt() {
+		return confirmRequestedAt;
 	}
 }

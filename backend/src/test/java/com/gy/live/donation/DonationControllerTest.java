@@ -6,18 +6,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.gy.live.donation.toss.TossPaymentsClient.TossPayment;
 import com.gy.live.support.AuthSupport;
 import com.gy.live.support.FakeLiveKitRoomClient;
 import com.gy.live.support.FakeTossPaymentsClient;
 import com.gy.live.support.IntegrationTest;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
+import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -32,6 +36,12 @@ class DonationControllerTest {
 
 	@Autowired
 	FakeTossPaymentsClient toss;
+
+	@Autowired
+	DonationService donationService;
+
+	@Autowired
+	JdbcTemplate jdbc;
 
 	Cookie owner;
 	Cookie donor;
@@ -148,13 +158,117 @@ class DonationControllerTest {
 		toss.mode(FakeTossPaymentsClient.Mode.REJECT);
 		confirm(donor, "pk-b", orderId(id, 1000), 1000).andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("PAYMENT_REJECTED"));
+		// 연결 실패는 토스가 승인했는지 알 수 없다: 적립하지 않고 결과 확인 대기(504)로 남긴다
 		toss.mode(FakeTossPaymentsClient.Mode.UNAVAILABLE);
-		confirm(donor, "pk-c", orderId(id, 1000), 1000).andExpect(status().isBadGateway())
-				.andExpect(jsonPath("$.code").value("PAYMENT_UNAVAILABLE"));
+		confirm(donor, "pk-c", orderId(id, 1000), 1000).andExpect(status().isGatewayTimeout())
+				.andExpect(jsonPath("$.code").value("PAYMENT_PENDING"));
 
 		mockMvc.perform(get("/api/broadcasts/{id}/donations", id))
 				.andExpect(jsonPath("$.totalAmount").value(0))
 				.andExpect(jsonPath("$.count").value(0));
+	}
+
+	@Test
+	@DisplayName("승인 성공: DONE으로 적립하고 승인 중 표시를 지운다")
+	void confirmSuccessClearsConfirming() throws Exception {
+		long id = broadcast(true);
+		String orderId = orderId(id, 1000);
+		String paymentKey = "pk-" + UUID.randomUUID();
+
+		confirm(donor, paymentKey, orderId, 1000).andExpect(status().isOk());
+
+		assertThat(row(orderId)).containsEntry("status", "DONE").containsEntry("payment_key", paymentKey)
+				.containsEntry("confirm_requested_at", null);
+	}
+
+	@Test
+	@DisplayName("토스가 거절하면 승인 전(PENDING)으로 되돌린다")
+	void rejectedRevertsToPending() throws Exception {
+		long id = broadcast(true);
+		String orderId = orderId(id, 1000);
+
+		toss.mode(FakeTossPaymentsClient.Mode.REJECT);
+		confirm(donor, "pk-r", orderId, 1000).andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("PAYMENT_REJECTED"));
+
+		assertThat(row(orderId)).containsEntry("status", "PENDING").containsEntry("payment_key", null);
+	}
+
+	@Test
+	@DisplayName("승인은 됐는데 응답이 끊기면 CONFIRMING으로 남고, 정리 작업이 토스 조회로 적립한다")
+	void timeoutThenReconcileApproves() throws Exception {
+		long id = broadcast(true);
+		String orderId = orderId(id, 4000);
+		String paymentKey = "pk-" + UUID.randomUUID();
+
+		toss.mode(FakeTossPaymentsClient.Mode.TIMEOUT_AFTER_APPROVE);
+		confirm(donor, paymentKey, orderId, 4000).andExpect(status().isGatewayTimeout())
+				.andExpect(jsonPath("$.code").value("PAYMENT_PENDING"));
+		assertThat(row(orderId)).containsEntry("status", "CONFIRMING");
+		mockMvc.perform(get("/api/broadcasts/{id}/donations", id)).andExpect(jsonPath("$.count").value(0));
+
+		// 앞 요청의 응답을 기다리는 시간 안에 다시 오면 토스를 또 부르지 않는다
+		toss.mode(FakeTossPaymentsClient.Mode.APPROVE);
+		confirm(donor, paymentKey, orderId, 4000).andExpect(status().isGatewayTimeout())
+				.andExpect(jsonPath("$.code").value("PAYMENT_PENDING"));
+		// 다른 결제로 같은 주문을 승인하려 하면 거절
+		confirm(donor, "pk-other", orderId, 4000).andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("DONATION_IN_PROGRESS"));
+		assertThat(toss.calls()).isEqualTo(1);
+
+		donationService.reconcileConfirming(Duration.ZERO);
+
+		assertThat(row(orderId)).containsEntry("status", "DONE").containsEntry("payment_key", paymentKey);
+		assertThat(toss.lookups()).isGreaterThanOrEqualTo(1);
+		mockMvc.perform(get("/api/broadcasts/{id}/donations", id))
+				.andExpect(jsonPath("$.totalAmount").value(4000))
+				.andExpect(jsonPath("$.count").value(1));
+		// 결제창 복귀 화면을 새로고침해도 토스를 다시 부르지 않고 적립 결과를 돌려준다
+		confirm(donor, paymentKey, orderId, 4000).andExpect(status().isOk())
+				.andExpect(jsonPath("$.amount").value(4000));
+		assertThat(toss.calls()).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("정리 작업: 토스에 결제가 없거나 승인되지 않고 끝났으면 PENDING으로 되돌리고, 조회 실패면 그대로 둔다")
+	void reconcileRevertsOrKeeps() throws Exception {
+		long id = broadcast(true);
+		toss.mode(FakeTossPaymentsClient.Mode.UNAVAILABLE);
+		String notFound = orderId(id, 1000);
+		String aborted = orderId(id, 1000);
+		confirm(donor, "pk-nf", notFound, 1000).andExpect(status().isGatewayTimeout());
+		confirm(donor, "pk-ab", aborted, 1000).andExpect(status().isGatewayTimeout());
+		toss.putPayment(new TossPayment("pk-ab", aborted, "ABORTED", 1000));
+
+		// 조회가 실패하면 결론을 내지 않는다
+		toss.lookupUnavailable(true);
+		donationService.reconcileConfirming(Duration.ZERO);
+		assertThat(row(notFound)).containsEntry("status", "CONFIRMING");
+		assertThat(row(aborted)).containsEntry("status", "CONFIRMING");
+
+		toss.lookupUnavailable(false);
+		donationService.reconcileConfirming(Duration.ZERO);
+		assertThat(row(notFound)).containsEntry("status", "PENDING").containsEntry("payment_key", null);
+		assertThat(row(aborted)).containsEntry("status", "PENDING").containsEntry("payment_key", null);
+		mockMvc.perform(get("/api/broadcasts/{id}/donations", id)).andExpect(jsonPath("$.count").value(0));
+	}
+
+	@Test
+	@DisplayName("정리 작업은 방금 승인을 요청한(응답 대기 중일 수 있는) 주문은 건드리지 않는다")
+	void reconcileSkipsInFlight() throws Exception {
+		long id = broadcast(true);
+		String orderId = orderId(id, 1000);
+		toss.mode(FakeTossPaymentsClient.Mode.TIMEOUT_AFTER_APPROVE);
+		confirm(donor, "pk-if", orderId, 1000).andExpect(status().isGatewayTimeout());
+
+		donationService.reconcileConfirming(DonationService.CONFIRM_IN_FLIGHT);
+
+		assertThat(row(orderId)).containsEntry("status", "CONFIRMING");
+	}
+
+	private Map<String, Object> row(String orderId) {
+		return jdbc.queryForMap("select status, payment_key, confirm_requested_at from donations where order_id = ?",
+				orderId);
 	}
 
 	@Test

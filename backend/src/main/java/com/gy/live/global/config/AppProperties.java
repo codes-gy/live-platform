@@ -11,8 +11,21 @@ public record AppProperties(
 		Cookie cookie,
 		Livekit livekit,
 		Toss toss,
-		Recording recording
+		Recording recording,
+		Login login,
+		CommentStream commentStream
 ) {
+
+	/**
+	 * 로그인 무차별 대입 방지(LoginAttemptLimiter). (접속 IP, 이메일)마다 window 안에 maxFailures번 틀리면 window가 끝날 때까지 429.
+	 * 메모리에 세므로 서버 한 대 기준이다.
+	 */
+	public record Login(int maxFailures, Duration window) {
+	}
+
+	/** 댓글 실시간 구독(SSE). 접속 IP 하나가 동시에 열 수 있는 연결 수. 메모리에 세므로 서버 한 대 기준이다. */
+	public record CommentStream(int maxPerIp) {
+	}
 
 	/**
 	 * 녹화(LiveKit Egress가 Cloudflare R2에 MP4로 올린다). 비어 있으면 녹화하지 않고 방송만 한다.

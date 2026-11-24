@@ -314,7 +314,8 @@ sequenceDiagram
 - 금액 · 대상은 **서버에 저장한 주문**과 대조한다(클라이언트 값 불신).
 - 같은 승인 통지가 반복돼도 `payment_key` · `order_id` 유니크 제약과 주문 상태 확인으로 한 번만 적립한다.
 - 방송별 후원 내역 · 합계 조회 API, 상세 화면에 합계 표시.
-- 구현: 주문 · 결과를 `donations` 한 테이블(V7, `status` PENDING → DONE)에 둔다. 주문은 로그인 · 방송 중 · 자기 방송 아님 · 1천~100만 원. 승인은 주문 행을 `FOR UPDATE`로 잠그고, 이미 DONE이면 같은 `paymentKey`는 그대로 성공(토스 재호출 없음) · 다른 키는 409. 토스 승인 요청에 `Idempotency-Key: orderId`. API: `POST /api/broadcasts/{id}/donations/orders` · `POST /api/donations/confirm` · `GET /api/broadcasts/{id}/donations`(공개). 결제창 복귀 화면 `/donations/success` · `/donations/fail`
+- 구현: 주문 · 결과를 `donations` 한 테이블(V7, `status` PENDING → CONFIRMING → DONE, V9에서 CONFIRMING 추가)에 둔다. 주문은 로그인 · 방송 중 · 자기 방송 아님 · 1천~100만 원. 승인은 세 단계다: ① 주문 행을 `FOR UPDATE`로 잠그고 확인한 뒤 CONFIRMING(+`confirm_requested_at`)으로 표시하고 바로 커밋 ② 트랜잭션 밖에서 토스 승인 호출 ③ 다시 잠그고 결과 반영(DONE, 거절 · 응답 불일치면 PENDING으로 되돌림). 토스 호출(최대 35초)이 DB 커넥션 · 행 잠금을 붙잡지 않는다. 이미 DONE이면 같은 `paymentKey`는 그대로 성공(토스 재호출 없음) · 다른 키는 409. 승인 중(1분 안)에 같은 요청이 다시 오면 토스를 또 부르지 않고 504 `PAYMENT_PENDING`. 토스 승인 요청에 `Idempotency-Key: orderId`.
+- 결과를 모를 때(시간 초과 · 연결 끊김 · 서버 재시작): CONFIRMING으로 남기고 504 `PAYMENT_PENDING`. `DonationReconcileScheduler`(`app.toss.reconcile-interval`, 기본 1분)가 1분 넘게 CONFIRMING인 주문을 `GET /v1/payments/orders/{orderId}`로 조회해 DONE이면 적립, 결제 없음 · CANCELED · ABORTED · EXPIRED면 PENDING으로 되돌리고, 진행 중이거나 조회 실패면 다음 주기에 다시 본다. API: `POST /api/broadcasts/{id}/donations/orders` · `POST /api/donations/confirm` · `GET /api/broadcasts/{id}/donations`(공개). 결제창 복귀 화면 `/donations/success` · `/donations/fail`
 
 ### 7.2 녹화 · 다시보기 (#13, 구현됨)
 
