@@ -13,6 +13,7 @@ public enum ErrorCode {
 
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "이미 가입된 이메일입니다."),
 	LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+	TOO_MANY_LOGIN_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요."),
 
 	BROADCAST_NOT_FOUND(HttpStatus.NOT_FOUND, "방송을 찾을 수 없습니다."),
 	NOT_BROADCAST_OWNER(HttpStatus.FORBIDDEN, "방송 소유자만 할 수 있습니다."),
@@ -27,6 +28,7 @@ public enum ErrorCode {
 	AVATAR_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필 이미지가 없습니다."),
 	INVALID_AVATAR(HttpStatus.BAD_REQUEST, "프로필 이미지는 200KB 이하의 JPEG만 올릴 수 있습니다."),
 
+	TOO_MANY_STREAMS(HttpStatus.TOO_MANY_REQUESTS, "실시간 댓글 연결이 너무 많습니다. 사용하지 않는 창을 닫고 다시 시도해 주세요."),
 	COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다."),
 	NOT_COMMENT_AUTHOR(HttpStatus.FORBIDDEN, "댓글 작성자만 할 수 있습니다."),
 
@@ -34,8 +36,11 @@ public enum ErrorCode {
 	CANNOT_DONATE_SELF(HttpStatus.BAD_REQUEST, "자기 방송에는 후원할 수 없습니다."),
 	DONATION_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 주문 금액과 다릅니다."),
 	DONATION_ALREADY_DONE(HttpStatus.CONFLICT, "이미 결제가 끝난 주문입니다."),
+	DONATION_IN_PROGRESS(HttpStatus.CONFLICT, "다른 결제로 승인 중인 주문입니다."),
 	PAYMENT_REJECTED(HttpStatus.BAD_REQUEST, "결제가 승인되지 않았습니다."),
-	PAYMENT_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "결제 서버와 연결하지 못했습니다. 잠시 후 다시 시도해 주세요."),
+	/** 토스 승인 결과를 아직 모른다(응답 지연 · 연결 끊김). 서버가 토스에 조회해 마무리한다 */
+	PAYMENT_PENDING(HttpStatus.GATEWAY_TIMEOUT,
+			"결제 결과를 아직 확인하지 못했습니다. 승인된 결제라면 잠시 뒤 후원 내역에 자동으로 반영됩니다."),
 	PAYMENT_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "결제 설정이 없어 후원할 수 없습니다."),
 	RECORDING_NOT_FOUND(HttpStatus.NOT_FOUND, "녹화를 찾을 수 없습니다."),
 

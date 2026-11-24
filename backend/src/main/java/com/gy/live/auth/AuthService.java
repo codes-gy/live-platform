@@ -17,10 +17,13 @@ public class AuthService {
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final LoginAttemptLimiter loginLimiter;
 
-	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+	public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+			LoginAttemptLimiter loginLimiter) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.loginLimiter = loginLimiter;
 	}
 
 	@Transactional
@@ -38,11 +41,23 @@ public class AuthService {
 		}
 	}
 
+	/**
+	 * clientIp: 무차별 대입 방지용 접속 IP. (IP, 이메일)마다 여러 번 틀리면 한동안 비밀번호를 확인하지 않고 429.
+	 * 막혀 있으면 비밀번호가 맞아도 거절한다(맞는 비밀번호를 찾았는지 알 수 없게).
+	 */
 	@Transactional(readOnly = true)
-	public User login(LoginRequest request) {
-		return userRepository.findByEmail(normalize(request.email()))
-				.filter(user -> passwordEncoder.matches(request.password(), user.getPasswordHash()))
-				.orElseThrow(() -> new BusinessException(ErrorCode.LOGIN_FAILED));
+	public User login(LoginRequest request, String clientIp) {
+		String email = normalize(request.email());
+		loginLimiter.checkAllowed(clientIp, email);
+		User user = userRepository.findByEmail(email)
+				.filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
+				.orElse(null);
+		if (user == null) {
+			loginLimiter.recordFailure(clientIp, email);
+			throw new BusinessException(ErrorCode.LOGIN_FAILED);
+		}
+		loginLimiter.recordSuccess(clientIp, email);
+		return user;
 	}
 
 	@Transactional(readOnly = true)

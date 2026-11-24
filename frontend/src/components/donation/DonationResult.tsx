@@ -8,7 +8,12 @@ import { Notice } from "../ui";
 
 type Params = { paymentKey?: string; orderId?: string; amount?: string; broadcastId?: string };
 
-type State = { kind: "confirming" } | { kind: "done"; donation: Donation } | { kind: "error"; message: string };
+type State =
+  | { kind: "confirming" }
+  | { kind: "done"; donation: Donation }
+  // 토스 응답이 늦어 결과를 아직 모름. 서버가 토스에 조회해 승인됐으면 적립한다
+  | { kind: "pending"; message: string }
+  | { kind: "error"; message: string };
 
 const backHref = (broadcastId?: string) => (broadcastId && /^\d+$/.test(broadcastId) ? `/broadcasts/${broadcastId}` : "/");
 
@@ -30,9 +35,13 @@ export function DonationSuccess({ params }: { params: Params }) {
     }
     confirmDonation(params.paymentKey, params.orderId, amount)
       .then((donation) => setState({ kind: "done", donation }))
-      .catch((e) =>
-        setState({ kind: "error", message: e instanceof ApiError ? e.message : "후원을 확정하지 못했습니다." }),
-      );
+      .catch((e) => {
+        if (e instanceof ApiError && e.code === "PAYMENT_PENDING") {
+          setState({ kind: "pending", message: e.message });
+          return;
+        }
+        setState({ kind: "error", message: e instanceof ApiError ? e.message : "후원을 확정하지 못했습니다." });
+      });
   }, [params.paymentKey, params.orderId, params.amount]);
 
   const back = (
@@ -42,6 +51,13 @@ export function DonationSuccess({ params }: { params: Params }) {
   );
   if (state.kind === "confirming") {
     return <Notice title="결제를 확인하는 중입니다" description="잠시만 기다려 주세요." />;
+  }
+  if (state.kind === "pending") {
+    return (
+      <Notice title="결제 결과를 확인하고 있습니다" description={state.message}>
+        {back}
+      </Notice>
+    );
   }
   if (state.kind === "error") {
     return (

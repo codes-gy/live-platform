@@ -262,6 +262,12 @@
   - Heroku api에 R2_* 설정, api v20 · web v17 배포. **운영 E2E**: 가짜 카메라 40초 송출 → 녹화 중 RECORDING → 종료 후 egress_ended 수신 → READY 38초 · 14.1MB → R2 서명 주소 206 video/mp4 → 설치된 Chrome으로 1280x720 재생 · 목록 카드 · 상세 다시보기 버튼 확인(자동화 Chromium은 H.264 코덱이 없어 재생 불가 — 확인은 `channel: chrome`). LiveKit 웹훅이 운영에서 실제로 도착함도 확인
   - 남은 것: 이슈 #12 · #13은 main 반영 전이라 열림. LiveKit 무료 녹화 한도 월 60분(이번 시험 약 1분 사용)
 
+- [x] (11-25) 안정성 점검 후속(브랜치 `fix/advancement-2026-11`, main 대상 PR)
+  - 도네이션 승인을 3단계로: 잠금 · 확인 · CONFIRMING 표시 커밋 → 트랜잭션 밖 토스 호출 → 잠금 · 결과 반영. 결과 모름(시간 초과 등)은 CONFIRMING으로 남기고 `DonationReconcileScheduler`(1분)가 `GET /v1/payments/orders/{orderId}`로 마무리. Flyway V9(상태 CONFIRMING · `confirm_requested_at`). 응답 504 `PAYMENT_PENDING`, 프론트 "확인 중" 안내
+  - 로그인 실패 제한(`LoginAttemptLimiter`, IP+이메일 15분 5회 → 429), 댓글 SSE 접속 IP당 30개(429). 둘 다 메모리 · 서버 1대 기준 → 다중 서버는 이슈 #71
+  - `dyno-schedule.yml` 머리 주석: Actions 설정에서 비활성(disabled_manually)인 상태와 이유 명시. develop의 #68(09~20시 운영 문서)과 실제(상시 운영)가 다르니 develop → main 반영 전에 정리 필요
+  - README 시연 영상 칸에 작성자용 TODO 주석(링크는 사용자가 채움)
+
 ## 현재 상태
 - (11-14) **배포됨(Heroku, 09~20시 KST)**: https://onair-live-web-28fc2f0d1715.herokuapp.com — LiveKit 키 · 웹훅 등록 전이라 송출 불가. PR #31 · #33 · #35 develop 머지 완료(11-14) → 운영 시간 예약(`dyno-schedule`)이 기본 브랜치 develop에서 매일 동작 시작(시크릿 `HEROKU_API_KEY` 있음). 운영 이미지는 #34(LIVE 정리) 이전 코드
 - (11-14) **사용자 지시: Heroku에 직접 배포하지 말 것** — 배포 · `heroku config:set` 같은 운영 변경은 사용자가 실행. Claude는 배포 파일 · 절차서만 준비. (Claude의 `heroku config:set` 시도는 권한 확인에서 거절됨)

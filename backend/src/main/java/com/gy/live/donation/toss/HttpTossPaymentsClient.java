@@ -5,14 +5,16 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-/** 토스페이먼츠 결제 승인 API(POST /v1/payments/confirm, 시크릿 키 Basic 인증). */
+/** 토스페이먼츠 결제 승인(POST /v1/payments/confirm) · 주문 번호로 조회(GET /v1/payments/orders/{orderId}). 시크릿 키 Basic 인증. */
 @Component
 public class HttpTossPaymentsClient implements TossPaymentsClient {
 
@@ -49,6 +51,21 @@ public class HttpTossPaymentsClient implements TossPaymentsClient {
 			throw e;
 		} catch (RestClientException e) {
 			throw new TossPaymentException("토스 결제 승인 실패: " + e.getMessage(), false);
+		}
+	}
+
+	@Override
+	public Optional<TossPayment> findByOrderId(String orderId) {
+		try {
+			return Optional.ofNullable(client.get()
+					.uri("/v1/payments/orders/{orderId}", orderId)
+					.retrieve()
+					.body(TossPayment.class));
+		} catch (HttpClientErrorException.NotFound e) {
+			// NOT_FOUND_PAYMENT: 승인 요청이 토스에 닿지 않았다
+			return Optional.empty();
+		} catch (RestClientException e) {
+			throw new TossPaymentException("토스 결제 조회 실패: " + e.getMessage(), false);
 		}
 	}
 }

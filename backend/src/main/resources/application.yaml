@@ -33,6 +33,14 @@ app:
     access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:12h}
   cookie:
     secure: ${COOKIE_SECURE:false}
+  # 로그인 무차별 대입 방지: (접속 IP, 이메일)마다 window 안에 max-failures번 틀리면 window가 끝날 때까지 429.
+  # 메모리에 센다(서버 한 대 기준, 재시작하면 초기화)
+  login:
+    max-failures: ${LOGIN_MAX_FAILURES:5}
+    window: ${LOGIN_WINDOW:15m}
+  # 댓글 실시간 구독(SSE): 접속 IP 하나가 동시에 열 수 있는 연결 수(메모리, 서버 한 대 기준)
+  comment-stream:
+    max-per-ip: ${COMMENT_STREAM_MAX_PER_IP:30}
   livekit:
     url: ${LIVEKIT_URL:}
     api-key: ${LIVEKIT_API_KEY:}
@@ -47,6 +55,8 @@ app:
   toss:
     client-key: ${TOSS_CLIENT_KEY:}
     secret-key: ${TOSS_SECRET_KEY:}
+    # 승인 결과를 모른 채 CONFIRMING으로 남은 후원을 토스 조회로 마무리하는 주기(DonationReconcileScheduler)
+    reconcile-interval: 1m
   # 녹화(LiveKit Egress → Cloudflare R2). 비어 있으면 녹화 없이 방송만 한다
   recording:
     r2-account-id: ${R2_ACCOUNT_ID:}

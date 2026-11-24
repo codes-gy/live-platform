@@ -19,7 +19,9 @@ import org.springframework.context.annotation.Import;
 		// 타이머는 테스트 중 돌지 않게 하고, 정리는 reconcileLive()를 직접 불러 확인한다
 		"app.livekit.reconcile-interval=1h",
 		"app.toss.client-key=test_ck_fake",
-		"app.toss.secret-key=test_sk_fake"
+		"app.toss.secret-key=test_sk_fake",
+		// 후원 정리 작업도 테스트에서는 reconcileConfirming()을 직접 불러 확인한다
+		"app.toss.reconcile-interval=1h"
 })
 @AutoConfigureMockMvc
 @Import({TestcontainersConfig.class, FakeLiveKitConfig.class})
