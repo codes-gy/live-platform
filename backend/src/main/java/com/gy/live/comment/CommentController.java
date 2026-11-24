@@ -4,6 +4,7 @@ import com.gy.live.comment.dto.CommentPageResponse;
 import com.gy.live.comment.dto.CommentRequest;
 import com.gy.live.comment.dto.CommentResponse;
 import com.gy.live.global.security.LoginUser;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.net.URI;
 import org.springframework.http.MediaType;
@@ -50,14 +51,14 @@ public class CommentController {
 	}
 
 	/**
-	 * 누구나. 새 댓글 · 수정 · 삭제 · 방송 종료를 SSE로 받는다.
+	 * 누구나. 새 댓글 · 수정 · 삭제 · 방송 종료를 SSE로 받는다. 접속 IP당 동시 연결 수 제한(넘으면 429).
 	 * X-Accel-Buffering: Nginx가 응답을 모아 두지 않고 바로 흘려보내게 한다.
 	 */
 	@GetMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public ResponseEntity<SseEmitter> stream(@PathVariable Long broadcastId) {
+	public ResponseEntity<SseEmitter> stream(@PathVariable Long broadcastId, HttpServletRequest http) {
 		return ResponseEntity.ok()
 				.header("X-Accel-Buffering", "no")
-				.body(commentStreams.subscribe(broadcastId));
+				.body(commentStreams.subscribe(broadcastId, http.getRemoteAddr()));
 	}
 
 	/** 작성자만. */
