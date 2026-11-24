@@ -134,6 +134,53 @@ class AuthControllerTest {
 					.andExpect(cookie().doesNotExist(AuthCookies.ACCESS_TOKEN));
 		}
 
+		private org.springframework.test.web.servlet.ResultActions login(String email, String password, String ip)
+				throws Exception {
+			return mockMvc.perform(post("/api/auth/login")
+					.with(request -> {
+						request.setRemoteAddr(ip);
+						return request;
+					})
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{"email":"%s","password":"%s"}
+							""".formatted(email, password)));
+		}
+
+		@Test
+		void 같은_IP_이메일로_5번_틀리면_맞는_비밀번호도_429() throws Exception {
+			String email = uniqueEmail();
+			signup(email, "password123");
+
+			for (int i = 0; i < 5; i++) {
+				login(email, "wrong-password", "10.0.0.1").andExpect(status().isUnauthorized());
+			}
+			login(email, "password123", "10.0.0.1")
+					.andExpect(status().isTooManyRequests())
+					.andExpect(jsonPath("$.code").value("TOO_MANY_LOGIN_ATTEMPTS"))
+					.andExpect(cookie().doesNotExist(AuthCookies.ACCESS_TOKEN));
+			// 대소문자 · 공백만 다른 이메일도 같은 계정으로 센다
+			login(" " + email.toUpperCase() + " ", "password123", "10.0.0.1")
+					.andExpect(status().isTooManyRequests());
+			// 다른 IP에서는 그대로 로그인된다
+			login(email, "password123", "10.0.0.2").andExpect(status().isOk());
+		}
+
+		@Test
+		void 로그인에_성공하면_실패_횟수를_지운다() throws Exception {
+			String email = uniqueEmail();
+			signup(email, "password123");
+
+			for (int i = 0; i < 4; i++) {
+				login(email, "wrong-password", "10.0.1.1").andExpect(status().isUnauthorized());
+			}
+			login(email, "password123", "10.0.1.1").andExpect(status().isOk());
+			for (int i = 0; i < 4; i++) {
+				login(email, "wrong-password", "10.0.1.1").andExpect(status().isUnauthorized());
+			}
+			login(email, "password123", "10.0.1.1").andExpect(status().isOk());
+		}
+
 		@Test
 		void 없는_이메일도_같은_401_메시지() throws Exception {
 			mockMvc.perform(post("/api/auth/login")

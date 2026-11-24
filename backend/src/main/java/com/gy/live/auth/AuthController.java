@@ -7,6 +7,7 @@ import com.gy.live.global.security.AuthCookies;
 import com.gy.live.global.security.JwtProvider;
 import com.gy.live.global.security.LoginUser;
 import com.gy.live.user.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,9 +39,13 @@ public class AuthController {
 		return withToken(HttpStatus.CREATED, authService.signup(request));
 	}
 
+	/**
+	 * 접속 IP는 request.getRemoteAddr(): server.forward-headers-strategy=framework라 프록시(Heroku 라우터 등)가 붙인
+	 * X-Forwarded-For를 반영한 값이다.
+	 */
 	@PostMapping("/login")
-	public ResponseEntity<MeResponse> login(@Valid @RequestBody LoginRequest request) {
-		return withToken(HttpStatus.OK, authService.login(request));
+	public ResponseEntity<MeResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+		return withToken(HttpStatus.OK, authService.login(request, http.getRemoteAddr()));
 	}
 
 	@PostMapping("/logout")
