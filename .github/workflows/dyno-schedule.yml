@@ -1,8 +1,14 @@
 name: Heroku 운영 시간
 
-# 비용을 줄이려고 오전 9시 ~ 오후 8시(KST)에만 서버(다이노)를 켠다. DB는 항상 켜져 있다.
+# 비용을 줄이려고 오전 9시 ~ 오후 8시(KST)에만 서버(다이노)를 켜는 예약. DB는 항상 켜져 있다.
 # GitHub 예약 실행은 기본 브랜치에서만 돌고, 몇 분 늦게 시작될 수 있다.
-# 현재 이 워크플로는 꺼 두었고(disabled), 운영 서버는 상시 켜져 있다.
+#
+# [현재 상태: 사용 안 함] 이 워크플로는 GitHub Actions 설정에서 비활성화(disabled_manually)되어 있다.
+# 파일의 cron은 그대로지만 비활성 상태에서는 예약 · 수동 실행 모두 돌지 않는다.
+# 이유: 이 예약이 켜져 있는 동안 매일 20:00(KST)에 운영 다이노를 꺼서, README · docs의 "상시 운영"과 실제가 달랐다.
+# 상시 운영을 유지하려고 2026-11에 Actions 설정에서 껐다. 다시 쓰려면 README · docs/DEPLOY.md의 운영 시간 안내도 함께 고치고
+#   gh workflow enable dyno-schedule.yml
+# 로 켠다. 상태 확인: gh workflow list --all
 on:
   schedule:
     - cron: "0 0 * * *" # 09:00 KST 켜기
